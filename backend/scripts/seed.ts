@@ -1,12 +1,10 @@
 import { DataSource } from 'typeorm';
-import { ObjectId } from 'mongodb';
-import configArr from '../ormconfig';
+import dbConfig from '../src/ormconfig';
 import { Form } from '../src/entities/Form';
 import { SqlSchema } from '../src/entities/SqlSchema';
 
 // Use the default (MongoDB) config
-const config = Array.isArray(configArr) ? configArr[0] : configArr;
-const dataSource = new DataSource(config);
+const dataSource = new DataSource(dbConfig);
 
 async function seed() {
   await dataSource.initialize();

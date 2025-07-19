@@ -1,7 +1,6 @@
 import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { IsString, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { FormSchema } from '../types/form-schema';
 
 @ApiSchema({ name: 'Form' })
 export class FormDto {

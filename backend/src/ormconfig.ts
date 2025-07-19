@@ -1,25 +1,24 @@
 import { DataSourceOptions } from 'typeorm';
 
-const mongoConfig: DataSourceOptions = {
-  name: 'mongodb',
+const dbConfig: DataSourceOptions = {
+  name: 'default',
   type: 'mongodb',
   host: 'localhost',
   port: 27017,
   database: 'forms',
-  entities: [__dirname + '/src/entities/*.ts'],
-  //migrations: [__dirname + '/src/migrations/*.ts'],
+  entities: [__dirname + '/entities/*.ts'],
   synchronize: true,
 };
 
 const sqliteConfig: DataSourceOptions = {
   name: 'sqlite',
   type: 'sqlite',
-  database: 'data/forms.db',
+  database: '../data/forms.db',
   synchronize: false,
-  entities: [__dirname + '/src/entities/*.ts'],
+  entities: [__dirname + '/entities/*.ts'],
 };
 
 // Export both configurations for use in the application
 // This allows you to switch between SQLite and MongoDB as needed
 // Note that the order of export matters (first is default)
-export default [mongoConfig, sqliteConfig];
+export default dbConfig;
