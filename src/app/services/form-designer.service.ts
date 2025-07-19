@@ -100,6 +100,14 @@ export class FormDesignerService {
     );
   }
 
+  getSavedForms(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/forms`);
+  }
+
+  deleteForm(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/forms/${id}`);
+  }
+
   exportFormSchema(): string {
     const schema = this.getState().schema;
     return JSON.stringify(schema, null, 2);

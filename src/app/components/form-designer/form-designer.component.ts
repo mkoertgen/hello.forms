@@ -61,13 +61,6 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
   state: FormDesignerState;
   private subscription = new Subscription();
 
-  // For Save/Load UI
-  showLoadDialog = false;
-  savedForms: any[] = [];
-  selectedFormId: string | null = null;
-  loadingForms = false;
-  loadError: string | null = null;
-
   constructor(
     private formDesignerService: FormDesignerService,
     private sqlSchemaService: SqlSchemaService,
@@ -76,12 +69,6 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
     this.state = this.formDesignerService.getState();
   }
   // --- Save/Load Form Logic ---
-  onNewForm(): void {
-    if (confirm('Are you sure you want to create a new form? Any unsaved changes will be lost.')) {
-      this.formDesignerService.createNewForm();
-    }
-  }
-
   onSaveForm(): void {
     const schema = this.state.schema;
     const isUpdate = !!schema.metadata.originalId || this.isExistingForm(schema);
@@ -112,39 +99,6 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
     const timeDiff = now.getTime() - createdAt.getTime();
     // If created more than 1 minute ago, consider it existing
     return timeDiff > 60000;
-  }
-
-  onOpenLoadDialog(): void {
-    this.showLoadDialog = true;
-    this.loadingForms = true;
-    this.loadError = null;
-    this.selectedFormId = null;
-    this.http.get<any[]>('http://localhost:3000/api/forms')
-      .pipe(finalize(() => this.loadingForms = false))
-      .subscribe({
-        next: (forms) => {
-          this.savedForms = forms;
-        },
-        error: (err) => {
-          this.loadError = 'Failed to load forms.';
-        }
-      });
-  }
-
-  onLoadSelectedForm(): void {
-    if (!this.selectedFormId) return;
-    this.loadingForms = true;
-    this.formDesignerService.loadFormSchema(this.selectedFormId)
-      .pipe(finalize(() => this.loadingForms = false))
-      .subscribe({
-        next: (schema: FormSchema) => {
-          this.formDesignerService.updateState({ schema });
-          this.showLoadDialog = false;
-        },
-        error: (err) => {
-          this.loadError = 'Failed to load form.';
-        }
-      });
   }
 
   ngOnInit(): void {
@@ -444,36 +398,6 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
     if (step) {
       const updatedFields = step.fields.filter(id => id !== fieldId);
       this.formDesignerService.updateStep(stepId, { fields: updatedFields });
-    }
-  }
-
-  // Export/Import Operations
-  exportSchema(): void {
-    const schemaJson = this.formDesignerService.exportFormSchema();
-    const blob = new Blob([schemaJson], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${this.state.schema.title.replace(/\s+/g, '_')}_schema.json`;
-    link.click();
-    window.URL.revokeObjectURL(url);
-  }
-
-  onFileImport(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const content = e.target?.result as string;
-          this.formDesignerService.importFormSchema(content);
-        } catch (error) {
-          console.error('Error importing schema:', error);
-          // TODO: Show error message to user
-        }
-      };
-      reader.readAsText(file);
     }
   }
 

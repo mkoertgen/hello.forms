@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +11,8 @@ import { MatIconModule } from '@angular/material/icon';
   imports: [
     CommonModule,
     RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
     MatToolbarModule,
     MatButtonModule,
     MatIconModule
@@ -18,11 +20,15 @@ import { MatIconModule } from '@angular/material/icon';
   template: `
     <mat-toolbar color="primary" class="toolbar">
       <mat-icon>build</mat-icon>
-      <span>Hello Forms - Form Designer</span>
+      <span>Hello Forms</span>
       <span class="spacer"></span>
-      <button mat-button routerLink="/designer">
+      <button mat-button routerLink="/manage" routerLinkActive="active">
+        <mat-icon>folder</mat-icon>
+        Manage
+      </button>
+      <button mat-button routerLink="/design" routerLinkActive="active">
         <mat-icon>design_services</mat-icon>
-        Designer
+        Design
       </button>
     </mat-toolbar>
     
@@ -33,6 +39,10 @@ import { MatIconModule } from '@angular/material/icon';
   styles: [`
     .spacer {
       flex: 1 1 auto;
+    }
+    
+    .active {
+      background-color: rgba(255, 255, 255, 0.1);
     }
     
     main {
