@@ -5,7 +5,22 @@ import { map, catchError } from 'rxjs/operators';
 import Ajv, { JSONSchemaType, ValidateFunction } from 'ajv';
 import addFormats from 'ajv-formats';
 import { OpenAPIV3 } from 'openapi-types';
-import { FormSchema, FormField, JSONSchema, JSONSchemaProperty, OpenAPIValidationSchema, FormFieldType } from '../models/form-schema.models';
+
+// Import from generated models - these now have all required properties
+import { 
+  Form as FormSchema, 
+  FormField, 
+  ValidationRule
+} from '../generated/models';
+
+// Import the service separately
+import { FormsAPIService } from '../generated/api.service';
+
+// Import local JSON Schema types
+import { 
+  JSONSchema,
+  JSONSchemaProperty
+} from '../models/form-schema.models';
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +29,10 @@ export class OpenAPIValidationService {
   private ajv: Ajv;
   private validatorCache = new Map<string, ValidateFunction>();
 
-  constructor(private http: HttpClient) {
+  constructor(
+    private http: HttpClient,
+    private formsAPI: FormsAPIService
+  ) {
     // Initialize AJV with formats support
     this.ajv = new Ajv({ 
       allErrors: true, 
@@ -72,7 +90,7 @@ export class OpenAPIValidationService {
         }
       ],
       paths: {
-        [`/forms/${formSchema.metadata.id}/validate`]: {
+        [`/forms/${formSchema.metadata?.id || formSchema.id}/validate`]: {
           post: {
             summary: `Validate ${formSchema.title} form data`,
             description: `Validates form data against the schema for ${formSchema.title}`,
@@ -112,7 +130,7 @@ export class OpenAPIValidationService {
             }
           }
         },
-        [`/forms/${formSchema.metadata.id}/submit`]: {
+        [`/forms/${formSchema.metadata?.id || formSchema.id}/submit`]: {
           post: {
             summary: `Submit ${formSchema.title} form`,
             description: `Submits and processes form data for ${formSchema.title}`,
@@ -152,7 +170,7 @@ export class OpenAPIValidationService {
             }
           }
         },
-        [`/forms/${formSchema.metadata.id}/_openapi`]: {
+        [`/forms/${formSchema.metadata?.id || formSchema.id}/_openapi`]: {
           get: {
             summary: `Get OpenAPI specification for ${formSchema.title}`,
             description: 'Returns the OpenAPI specification for this form',
@@ -284,15 +302,18 @@ export class OpenAPIValidationService {
     if (formSchema.steps && formSchema.steps.length > 0) {
       // Multi-step form
       for (const step of formSchema.steps) {
-        const stepFields = formSchema.fields.filter(field => step.fields.includes(field.id));
+        const stepFields = formSchema.fields.filter(field => {
+          const extendedField = field as FormField;
+          return step.fields.includes(extendedField.id || field.name);
+        });
         for (const field of stepFields) {
-          this.addFieldToSchema(field, properties, required, formSchema);
+          this.addFieldToSchema(field as FormField, properties, required, formSchema);
         }
       }
     } else {
       // Single-step form
       for (const field of formSchema.fields) {
-        this.addFieldToSchema(field, properties, required, formSchema);
+        this.addFieldToSchema(field as FormField, properties, required, formSchema);
       }
     }
 
@@ -338,8 +359,9 @@ export class OpenAPIValidationService {
     this.addValidationRules(field, property, formSchema);
 
     // Add conditional logic
-    if (field.conditional) {
-      property['x-conditional'] = field.conditional;
+    const extendedField = field as FormField;
+    if (extendedField && 'conditional' in extendedField && extendedField.conditional) {
+      property['x-conditional'] = extendedField.conditional;
     }
 
     // Add default value
@@ -349,8 +371,15 @@ export class OpenAPIValidationService {
 
     // Add options for select/radio fields
     if (field.options && field.options.length > 0) {
-      property.enum = field.options.map(opt => opt.value);
-      property.examples = field.options.map(opt => opt.value);
+      property.enum = field.options.map(opt => {
+        if (typeof opt === 'string') {
+          return opt;
+        } else if (opt && typeof opt === 'object' && 'value' in opt) {
+          return opt.value;
+        }
+        return opt;
+      });
+      property.examples = property.enum.slice(0, 3); // Show first 3 as examples
     }
 
     properties[field.name] = property;
@@ -360,7 +389,9 @@ export class OpenAPIValidationService {
    * Sets the JSON Schema type and format based on form field type
    */
   private setPropertyTypeAndFormat(field: FormField, property: JSONSchemaProperty): void {
-    switch (field.type) {
+    const fieldType = field.type as string;
+    
+    switch (fieldType) {
       case 'text':
       case 'textarea':
       case 'password':
@@ -387,6 +418,7 @@ export class OpenAPIValidationService {
         property.type = 'string';
         property.format = 'date';
         break;
+      case 'datetime-local':
       case 'datetime':
         property.type = 'string';
         property.format = 'date-time';
@@ -424,9 +456,10 @@ export class OpenAPIValidationService {
     property: JSONSchemaProperty,
     formSchema: FormSchema
   ): void {
-    if (!field.validation?.rules) return;
+    const extendedField = field as FormField;
+    if (!extendedField || !('validation' in extendedField) || !extendedField.validation?.rules) return;
 
-    for (const ruleId of field.validation.rules) {
+    for (const ruleId of extendedField.validation.rules) {
       const rule = formSchema.validationRules?.find(r => r.id === ruleId);
       if (!rule) continue;
 
@@ -471,8 +504,8 @@ export class OpenAPIValidationService {
     }
 
     // Add field-level custom message
-    if (field.validation.customMessage) {
-      property['x-validation-message'] = field.validation.customMessage;
+    if (extendedField.validation.customMessage) {
+      property['x-validation-message'] = extendedField.validation.customMessage;
     }
   }
 
@@ -526,7 +559,9 @@ export class OpenAPIValidationService {
   validateFormData(formSchema: FormSchema, formData: any): ValidationResult {
     try {
       const schema = this.generateRequestSchema(formSchema);
-      const cacheKey = `${formSchema.metadata.id}_${formSchema.metadata.createdAt}`;
+      const metadataId = formSchema.metadata?.id || formSchema.id || 'unknown';
+      const metadataDate = formSchema.metadata?.createdAt || new Date();
+      const cacheKey = `${metadataId}_${metadataDate}`;
       
       let validator = this.validatorCache.get(cacheKey);
       if (!validator) {
@@ -577,13 +612,13 @@ export class OpenAPIValidationService {
    */
   private getErrorMessage(error: any, formSchema: FormSchema, fieldName: string): string {
     // First, try to get custom message from field validation rules
-    const field = formSchema.fields.find(f => f.name === fieldName);
-    if (field?.validation?.customMessage) {
+    const field = formSchema.fields.find(f => f.name === fieldName) as FormField;
+    if (field && 'validation' in field && field.validation?.customMessage) {
       return field.validation.customMessage;
     }
 
     // Try to get message from validation rules
-    if (field?.validation?.rules) {
+    if (field && 'validation' in field && field.validation?.rules) {
       for (const ruleId of field.validation.rules) {
         const rule = formSchema.validationRules?.find(r => r.id === ruleId);
         if (rule && this.isMatchingValidationType(rule.type, error.keyword)) {
@@ -620,18 +655,42 @@ export class OpenAPIValidationService {
   }
 
   /**
-   * Validates form data against a remote API endpoint
+   * Validates form data against a remote API endpoint using the generated service
    */
-  validateFormDataRemote(formId: string, formData: any): Observable<ValidationResult> {
-    return this.http.post<ValidationResult>(`/api/forms/${formId}/validate`, formData)
+  validateFormDataRemote(formId: string, formData: PostFormsIdValidateBody): Observable<ValidationResult> {
+    return this.formsAPI.postFormsIdValidate(formId, formData)
       .pipe(
-        catchError((error) => {
+        map((response: PostFormsIdValidate200) => ({
+          valid: response.valid || false,
+          errors: [], // Success response doesn't have errors
+          timestamp: response.timestamp || new Date().toISOString(),
+          message: response.message || 'Validation successful'
+        })),
+        catchError((errorResponse) => {
+          // Handle validation error response
+          if (errorResponse.error && typeof errorResponse.error === 'object') {
+            const error = errorResponse.error as PostFormsIdValidate400;
+            const validationResult: ValidationResult = {
+              valid: false,
+              errors: error.errors?.map(e => ({
+                field: e.field || 'unknown',
+                code: e.code || 'unknown',
+                message: e.message || 'Validation error',
+                value: e.value
+              })) || [],
+              timestamp: error.timestamp || new Date().toISOString(),
+              message: error.message || 'Validation failed'
+            };
+            return of(validationResult);
+          }
+          
+          // Handle network or other errors
           const validationResult: ValidationResult = {
             valid: false,
             errors: [{
               field: 'root',
               code: 'network_error',
-              message: `Validation request failed: ${error.message || 'Network error'}`,
+              message: `Validation request failed: ${errorResponse.message || 'Network error'}`,
               value: formData
             }],
             timestamp: new Date().toISOString(),
@@ -643,11 +702,16 @@ export class OpenAPIValidationService {
   }
 
   /**
-   * Gets the OpenAPI specification from the server
+   * Gets the OpenAPI specification from the server using the generated service
    */
   getOpenAPISpec(formId: string, format: 'json' | 'yaml' = 'json'): Observable<any> {
-    const headers = format === 'yaml' ? { 'Accept': 'application/x-yaml' } : { 'Accept': 'application/json' };
-    return this.http.get(`/api/forms/${formId}/_openapi`, { headers });
+    return this.formsAPI.getFormsIdOpenapi(formId)
+      .pipe(
+        catchError((error) => {
+          console.error('Failed to fetch OpenAPI spec:', error);
+          return of(null);
+        })
+      );
   }
 
   /**

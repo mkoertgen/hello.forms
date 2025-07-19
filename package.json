@@ -22,7 +22,9 @@
     "lint:backend": "npm run lint --workspace=backend",
     "start": "npm run start --workspace=backend",
     "clean": "npm run clean --workspaces && rm -rf node_modules",
-    "install:all": "npm install"
+    "install:all": "npm install",
+    "generate:api": "npm run generate:api --workspace=frontend",
+    "generate:api:watch": "npm run generate:api:watch --workspace=frontend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

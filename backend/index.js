@@ -78,6 +78,12 @@ const swaggerOptions = {
 const specs = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
+// Expose OpenAPI spec as JSON for code generation tools
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(specs);
+});
+
 /**
  * @swagger
  * components:
@@ -98,31 +104,84 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
  *         description:
  *           type: string
  *           description: Description of the form
+ *         metadata:
+ *           $ref: '#/components/schemas/FormMetadata'
  *         fields:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/FormField'
+ *         steps:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/FormStep'
+ *           description: Multi-step form configuration
+ *         version:
+ *           type: string
+ *           description: Version of the form schema
+ *         validationRules:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/ExtendedValidationRule'
+ *           description: Custom validation rules for the form
+ *     FormMetadata:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: Unique identifier for the form metadata
+ *         version:
+ *           type: string
+ *           description: Version of the form schema
+ *         author:
+ *           type: string
+ *           description: Author of the form
+ *         tags:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Tags associated with the form
+ *         lastModified:
+ *           type: string
+ *           format: date-time
+ *           description: Last modification timestamp
  *     FormField:
  *       type: object
  *       required:
+ *         - id
  *         - name
  *         - type
  *         - label
  *       properties:
+ *         id:
+ *           type: string
+ *           description: Unique identifier for the field
  *         name:
  *           type: string
+ *           description: Field name used in form data
  *         type:
  *           type: string
  *           enum: [text, email, tel, url, number, date, datetime-local, checkbox, select, radio, textarea, file]
+ *           description: Type of the form field
  *         label:
  *           type: string
+ *           description: Display label for the field
  *         required:
  *           type: boolean
+ *           description: Whether the field is required
  *         defaultValue:
  *           oneOf:
  *             - type: string
  *             - type: number
  *             - type: boolean
+ *           description: Default value for the field
+ *         placeholder:
+ *           type: string
+ *           description: Placeholder text for the field
+ *         helpText:
+ *           type: string
+ *           description: Help text to display with the field
+ *         validation:
+ *           $ref: '#/components/schemas/ValidationRule'
  *         options:
  *           type: array
  *           items:
@@ -134,6 +193,162 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
  *                     type: string
  *                   label:
  *                     type: string
+ *           description: Options for select, radio, or checkbox fields
+ *         conditional:
+ *           $ref: '#/components/schemas/ConditionalLogic'
+ *     ValidationRule:
+ *       type: object
+ *       properties:
+ *         required:
+ *           type: boolean
+ *           description: Whether the field is required
+ *         minLength:
+ *           type: integer
+ *           description: Minimum length for text fields
+ *         maxLength:
+ *           type: integer
+ *           description: Maximum length for text fields
+ *         min:
+ *           type: number
+ *           description: Minimum value for numeric fields
+ *         max:
+ *           type: number
+ *           description: Maximum value for numeric fields
+ *         pattern:
+ *           type: string
+ *           description: Regular expression pattern for validation
+ *         customMessage:
+ *           type: string
+ *           description: Custom validation error message
+ *     ConditionalLogic:
+ *       type: object
+ *       properties:
+ *         show:
+ *           type: boolean
+ *           description: Whether to show or hide the field
+ *         when:
+ *           type: object
+ *           properties:
+ *             field:
+ *               type: string
+ *               description: Field ID to check
+ *             operator:
+ *               type: string
+ *               enum: [equals, notEquals, contains, greaterThan, lessThan]
+ *               description: Comparison operator
+ *             value:
+ *               oneOf:
+ *                 - type: string
+ *                 - type: number
+ *                 - type: boolean
+ *               description: Value to compare against
+ *     SQLTable:
+ *       type: object
+ *       required:
+ *         - name
+ *         - columns
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Name of the SQL table
+ *         columns:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SQLColumn'
+ *         relationships:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/SQLRelationship'
+ *     SQLColumn:
+ *       type: object
+ *       required:
+ *         - name
+ *         - type
+ *         - nullable
+ *         - primaryKey
+ *       properties:
+ *         name:
+ *           type: string
+ *         type:
+ *           type: string
+ *           enum: [INTEGER, VARCHAR, TEXT, BOOLEAN, DATE, DATETIME, DECIMAL, FLOAT, TIMESTAMP]
+ *         nullable:
+ *           type: boolean
+ *         primaryKey:
+ *           type: boolean
+ *         foreignKey:
+ *           type: string
+ *         maxLength:
+ *           type: integer
+ *         defaultValue:
+ *           oneOf:
+ *             - type: string
+ *             - type: number
+ *             - type: boolean
+ *         constraints:
+ *           type: array
+ *           items:
+ *             type: string
+ *     SQLRelationship:
+ *       type: object
+ *       required:
+ *         - type
+ *         - targetTable
+ *         - foreignKey
+ *         - targetKey
+ *       properties:
+ *         type:
+ *           type: string
+ *           enum: [one-to-one, one-to-many, many-to-many]
+ *         targetTable:
+ *           type: string
+ *         foreignKey:
+ *           type: string
+ *         targetKey:
+ *           type: string
+ *     FormStep:
+ *       type: object
+ *       required:
+ *         - id
+ *         - title
+ *         - order
+ *         - fields
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: Unique identifier for the step
+ *         title:
+ *           type: string
+ *           description: Title of the form step
+ *         description:
+ *           type: string
+ *           description: Description of the form step
+ *         order:
+ *           type: integer
+ *           description: Order of the step in the form sequence
+ *         fields:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Array of field IDs that belong to this step
+ *         conditionalLogic:
+ *           $ref: '#/components/schemas/ConditionalLogic'
+ *     ExtendedValidationRule:
+ *       allOf:
+ *         - $ref: '#/components/schemas/ValidationRule'
+ *         - type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *               description: Unique identifier for the validation rule
+ *             name:
+ *               type: string
+ *               description: Name of the validation rule
+ *             rules:
+ *               type: array
+ *               items:
+ *                 type: string
+ *               description: Array of validation rule identifiers
  */
 
 /**
@@ -218,6 +433,8 @@ app.get('/api/tables/:tableName', (req, res) => {
  *                 type: string
  *               tables:
  *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/SQLTable'
  *     responses:
  *       201:
  *         description: Schema uploaded successfully
