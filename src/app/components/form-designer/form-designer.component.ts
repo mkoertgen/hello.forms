@@ -18,6 +18,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatListModule } from '@angular/material/list';
+import { MatChipsModule } from '@angular/material/chips';
 import { Subscription } from 'rxjs';
 
 import { FormDesignerService } from '../../services/form-designer.service';
@@ -52,6 +53,7 @@ import {
     MatExpansionModule,
     MatToolbarModule,
     MatListModule,
+    MatChipsModule,
     FormPreviewComponent
   ],
   templateUrl: './form-designer.component.html',
@@ -102,25 +104,17 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    console.log('FormDesignerComponent initializing...');
     this.subscription.add(
       this.formDesignerService.state$.subscribe(state => {
-        console.log('State updated:', state);
         this.state = state;
       })
     );
 
     this.subscription.add(
       this.sqlSchemaService.tables$.subscribe(tables => {
-        console.log('SQL tables loaded:', tables);
         this.formDesignerService.updateState({ sqlTables: tables });
       })
     );
-    
-    // Log connected drop lists after component is initialized
-    setTimeout(() => {
-      console.log('Connected drop lists:', this.getConnectedDropLists());
-    }, 1000);
   }
 
   ngOnDestroy(): void {
@@ -145,8 +139,6 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
       }
     }
     
-    console.log('Connected drop lists:', lists);
-    console.log('Number of SQL tables:', this.state.sqlTables?.length || 0);
     return lists;
   }
 
@@ -161,21 +153,11 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
       }
     }
     
-    console.log('Target drop lists for SQL columns:', lists);
     return lists;
   }
 
   // Drag and Drop Operations
   onFieldDrop(event: CdkDragDrop<any[]>): void {
-    console.log('=== DROP EVENT TRIGGERED ===');
-    console.log('Drop event:', event);
-    console.log('Previous container ID:', event.previousContainer.id);
-    console.log('Current container ID:', event.container.id);
-    console.log('Previous container data:', event.previousContainer.data);
-    console.log('Current container data:', event.container.data);
-    console.log('Drag data:', event.item.data);
-    console.log('Previous index:', event.previousIndex);
-    console.log('Current index:', event.currentIndex);
 
     // Check if dropping into a step
     const containerId = event.container.id;
@@ -184,13 +166,9 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
 
     if (event.previousContainer === event.container) {
       // Reorder existing fields within the same container
-      console.log('=== REORDERING FIELDS ===');
-      console.log('Moving from index', event.previousIndex, 'to index', event.currentIndex);
-      
       if (isStepDrop) {
         // Reordering within a step
         const stepIndex = parseInt(containerId.replace('step-drop-zone-', ''));
-        console.log('Reordering within step', stepIndex);
         moveItemInArray(
           event.container.data, 
           event.previousIndex, 
@@ -209,24 +187,18 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
     } else {
       // Moving between containers or adding new field
       const dragData = event.item.data;
-      console.log('=== ADDING NEW FIELD ===');
-      console.log('Adding new field. Drag data:', dragData);
       
       // Check if it has the structure of a DragDropField (from palette)
       if (dragData && 'type' in dragData && 'label' in dragData && 'icon' in dragData) {
-        console.log('=== ADDING FROM PALETTE ===');
         const dragDropField = dragData as DragDropField;
         
         if (isStepDrop) {
           const stepIndex = parseInt(containerId.replace('step-drop-zone-', ''));
-          console.log('Adding field to step', stepIndex);
           this.addFieldFromPaletteToStep(dragDropField, stepIndex, event.currentIndex);
         } else if (isMainDrop) {
-          console.log('Adding field to main form');
           this.addFieldFromPalette(dragDropField, event.currentIndex);
         }
       } else if (dragData && 'name' in dragData && 'type' in dragData) {
-        console.log('=== ADDING FROM SQL COLUMN ===');
         // Handle SQL column drop
         const column = dragData as SQLColumn;
         const tableName = this.findTableNameForColumn(column);
@@ -235,10 +207,8 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
           
           if (isStepDrop) {
             const stepIndex = parseInt(containerId.replace('step-drop-zone-', ''));
-            console.log('Adding SQL column to step', stepIndex);
             this.formDesignerService.addFieldToStep(field, stepIndex, event.currentIndex);
           } else if (isMainDrop) {
-            console.log('Adding SQL column to main form');
             this.formDesignerService.addField(field, event.currentIndex);
           }
         } else {
@@ -321,9 +291,7 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
   }
 
   removeField(fieldId: string): void {
-    console.log('Removing field:', fieldId);
     this.formDesignerService.removeField(fieldId);
-    console.log('Field removed, current fields:', this.state.schema.fields.length);
   }
 
   duplicateField(field: FormField): void {
@@ -357,6 +325,48 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
   onFormDescriptionChange(event: Event): void {
     const target = event.target as HTMLTextAreaElement;
     this.updateFormDescription(target.value);
+  }
+
+  // Tag management
+  get formTags(): string[] {
+    return this.state.schema.metadata.tags || [];
+  }
+
+  addTag(tag: string): void {
+    if (!tag.trim()) return;
+    
+    const normalizedTag = tag.trim().toLowerCase();
+    const currentTags = this.formTags.map(t => t.toLowerCase());
+    
+    if (currentTags.includes(normalizedTag)) return;
+    
+    const updatedTags = [...this.formTags, tag.trim()];
+    this.formDesignerService.updateState({
+      schema: {
+        ...this.state.schema,
+        metadata: {
+          ...this.state.schema.metadata,
+          tags: updatedTags
+        }
+      }
+    });
+  }
+
+  removeTag(tagToRemove: string): void {
+    const updatedTags = this.formTags.filter(tag => tag !== tagToRemove);
+    this.formDesignerService.updateState({
+      schema: {
+        ...this.state.schema,
+        metadata: {
+          ...this.state.schema.metadata,
+          tags: updatedTags
+        }
+      }
+    });
+  }
+
+  trackByTag(index: number, tag: string): string {
+    return tag;
   }
 
   // Step/Wizard Operations

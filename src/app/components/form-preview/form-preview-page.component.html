@@ -1,0 +1,38 @@
+<div class="preview-page-container">
+  <mat-toolbar class="preview-toolbar">
+    <button mat-icon-button (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span>Preview Form</span>
+    
+    <span class="spacer"></span>
+    
+    <button mat-button (click)="editForm()" *ngIf="schema">
+      <mat-icon>edit</mat-icon>
+      Edit Form
+    </button>
+  </mat-toolbar>
+
+  <div class="preview-content">
+    <!-- Loading state -->
+    <div *ngIf="loading" class="loading-container">
+      <mat-spinner></mat-spinner>
+      <p>Loading form...</p>
+    </div>
+
+    <!-- Error state -->
+    <div *ngIf="error && !loading" class="error-container">
+      <mat-icon>error</mat-icon>
+      <h2>{{ error }}</h2>
+      <button mat-raised-button color="primary" (click)="goBack()">
+        Go Back to Forms
+      </button>
+    </div>
+
+    <!-- Form preview -->
+    <app-form-preview 
+      *ngIf="schema && !loading && !error" 
+      [schema]="schema">
+    </app-form-preview>
+  </div>
+</div>

@@ -2,7 +2,7 @@
   <!-- Main Toolbar -->
   <mat-toolbar class="main-toolbar">
     <mat-icon>build</mat-icon>
-    <span>Form Designer</span>
+    <span>Designer</span>
     
     <span class="spacer"></span>
     
@@ -92,6 +92,31 @@
               rows="2">
             </textarea>
           </mat-form-field>
+
+          <!-- Tags -->
+          <div class="form-tags-editor">
+            <mat-form-field appearance="outline" class="tags-input-field">
+              <mat-label>Tags</mat-label>
+              <input 
+                matInput 
+                #tagInput
+                (keyup.enter)="addTag(tagInput.value); tagInput.value=''"
+                placeholder="Add a tag and press Enter">
+              <mat-icon matSuffix>local_offer</mat-icon>
+            </mat-form-field>
+            
+            <div class="current-tags" *ngIf="formTags.length > 0">
+              <mat-chip-set>
+                <mat-chip 
+                  *ngFor="let tag of formTags; trackBy: trackByTag"
+                  [removable]="true"
+                  (removed)="removeTag(tag)">
+                  {{ tag }}
+                  <mat-icon matChipRemove>cancel</mat-icon>
+                </mat-chip>
+              </mat-chip-set>
+            </div>
+          </div>
         </div>
 
         <!-- Form Fields or Steps -->

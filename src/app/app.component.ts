@@ -19,16 +19,18 @@ import { MatIconModule } from '@angular/material/icon';
   ],
   template: `
     <mat-toolbar color="primary" class="toolbar">
-      <mat-icon>build</mat-icon>
-      <span>Hello Forms</span>
+      <button mat-button routerLink="/" class="home-link">
+        <mat-icon>build</mat-icon>
+        <span>Forms Admin</span>
+      </button>
       <span class="spacer"></span>
       <button mat-button routerLink="/manage" routerLinkActive="active">
         <mat-icon>folder</mat-icon>
-        Manage
+        Manager
       </button>
       <button mat-button routerLink="/design" routerLinkActive="active">
         <mat-icon>design_services</mat-icon>
-        Design
+        Designer
       </button>
     </mat-toolbar>
     
@@ -43,6 +45,21 @@ import { MatIconModule } from '@angular/material/icon';
     
     .active {
       background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .home-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: inherit;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .app-title {
+      font-size: 1.1em;
+      font-weight: 500;
+      letter-spacing: 0.5px;
     }
     
     main {

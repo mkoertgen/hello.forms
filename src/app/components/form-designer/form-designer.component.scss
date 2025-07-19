@@ -48,6 +48,40 @@
           width: 100%;
           margin-bottom: 16px;
         }
+
+        .form-tags-editor {
+          margin-bottom: 16px;
+
+          .tags-input-field {
+            width: 100%;
+            margin-bottom: 12px;
+          }
+
+          .current-tags {
+            mat-chip-set {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 8px;
+            }
+
+            mat-chip {
+              font-size: 0.85em;
+              background-color: #e3f2fd;
+              color: #1976d2;
+
+              &:hover {
+                background-color: #bbdefb;
+              }
+
+              mat-icon[matChipRemove] {
+                font-size: 16px;
+                width: 16px;
+                height: 16px;
+                cursor: pointer;
+              }
+            }
+          }
+        }
       }
 
       .form-content {
