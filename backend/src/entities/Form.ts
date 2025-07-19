@@ -1,31 +1,58 @@
-import { Column, Entity } from 'typeorm';
-import { FormSchema } from '../types/form-schema';
+import { Entity, ObjectIdColumn, Column } from 'typeorm';
+import { JSONSchema7 } from 'json-schema';
+import * as semver from 'semver';
+
+export class FormMetadata {
+  @Column()
+  title: string;
+  @Column()
+  description: string;
+  @Column()
+  author: string;
+  @Column()
+  createdAt: Date;
+  @Column()
+  updatedAt: Date;
+  @Column('array')
+  private _tags: string[];
+
+  get tags(): Set<string> {
+    return new Set(this._tags);
+  }
+  set tags(value: Set<string>) {
+    this._tags = Array.from(value);
+  }
+}
+
+type SemanticVersion = string & { __semverBrand: true };
 
 @Entity('form')
 export class Form {
-  @Column('text', { primary: true, name: 'id', nullable: true, unique: true })
-  id: string | null;
+  @ObjectIdColumn()
+  _id: string;
 
-  @Column('text', { name: 'title' })
-  title: string;
+  @Column()
+  id: string;
 
-  @Column('text', { name: 'description', nullable: true })
-  description: string | null;
+  @Column((type) => FormMetadata)
+  meta: FormMetadata;
 
-  @Column('simple-json', { name: 'schema_json' })
-  schemaJson: FormSchema;
+  @Column('json')
+  schema: JSONSchema7;
 
-  @Column('datetime', {
-    name: 'created_at',
-    nullable: true,
-    default: () => 'CURRENT_TIMESTAMP',
-  })
-  createdAt: Date | null;
+  @Column({ name: 'version', nullable: true })
+  private _version?: string;
 
-  @Column('datetime', {
-    name: 'updated_at',
-    nullable: true,
-    default: () => 'CURRENT_TIMESTAMP',
-  })
-  updatedAt: Date | null;
+  get version(): SemanticVersion | undefined {
+    if (this._version && semver.valid(this._version)) {
+      return this._version as SemanticVersion;
+    }
+    return undefined;
+  }
+  set version(value: string | undefined) {
+    if (value && !semver.valid(value)) {
+      throw new Error(`Invalid semantic version: ${value}`);
+    }
+    this._version = value;
+  }
 }

@@ -1,20 +1,56 @@
-import { Column, Entity } from "typeorm";
+import { Entity, ObjectIdColumn, Column } from 'typeorm';
 
-@Entity("sql_schema")
+export class SqlSchemaColumn {
+  @Column()
+  name: string;
+  @Column()
+  type: string;
+  @Column({ nullable: true })
+  maxLength?: number;
+  @Column({ nullable: true })
+  nullable?: boolean;
+  @Column({ nullable: true })
+  primaryKey?: boolean;
+  @Column({ nullable: true })
+  defaultValue?: any;
+  @Column({ nullable: true })
+  foreignKey?: string;
+}
+
+export class SqlSchemaRelationship {
+  @Column()
+  foreignKey: string;
+  @Column()
+  targetKey: string;
+  @Column()
+  targetTable: string;
+  @Column()
+  type: string;
+}
+
+export class SqlSchemaTable {
+  @Column()
+  name: string;
+  @Column((type) => SqlSchemaColumn)
+  columns: SqlSchemaColumn[];
+  @Column((type) => SqlSchemaRelationship)
+  relationships?: SqlSchemaRelationship[];
+}
+
+@Entity('sql_schema')
 export class SqlSchema {
-  @Column("text", { primary: true, name: "id", nullable: true, unique: true })
-  id: string | null;
+  @ObjectIdColumn()
+  _id: string;
 
-  @Column("text", { name: "name" })
+  @Column()
+  id: string;
+
+  @Column()
   name: string;
 
-  @Column("text", { name: "tables_json" })
-  tablesJson: string;
+  @Column((type) => SqlSchemaTable)
+  tables: SqlSchemaTable[];
 
-  @Column("datetime", {
-    name: "created_at",
-    nullable: true,
-    default: () => "CURRENT_TIMESTAMP",
-  })
-  createdAt: Date | null;
+  @Column({ nullable: true })
+  createdAt?: string;
 }
