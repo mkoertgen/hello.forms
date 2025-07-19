@@ -1,0 +1,75 @@
+<div class="form-manager-container">
+  <mat-toolbar class="main-toolbar">
+    <mat-icon>folder</mat-icon>
+    <span>Form Manager</span>
+    
+    <span class="spacer"></span>
+    
+    <button mat-raised-button color="primary" (click)="onCreateNew()">
+      <mat-icon>add</mat-icon>
+      Create New Form
+    </button>
+
+    <button mat-button (click)="fileInput.click()">
+      <mat-icon>upload</mat-icon>
+      Import Form
+    </button>
+
+    <input 
+      #fileInput
+      type="file" 
+      style="display: none" 
+      accept=".json"
+      (change)="onFileImport($event)">
+  </mat-toolbar>
+
+  <div class="content">
+    <app-search-bar
+      [searchTerm]="searchTerm"
+      label="Search forms"
+      placeholder="Search by title, description, or tags..."
+      (searchChange)="onSearchChange($event)">
+    </app-search-bar>
+
+    <app-loading-state
+      *ngIf="loading"
+      message="Loading forms..."
+      [useSpinner]="true">
+    </app-loading-state>
+
+    <app-empty-state
+      *ngIf="!loading && error"
+      icon="error"
+      title="Error Loading Forms"
+      [message]="error"
+      [primaryAction]="retryAction"
+      (primaryActionClick)="loadForms()">
+    </app-empty-state>
+
+    <app-empty-state
+      *ngIf="!loading && forms.length === 0 && !error && !searchTerm"
+      icon="note_add"
+      title="No Forms Created Yet"
+      message="Create your first form to get started"
+      [primaryAction]="createFirstFormAction"
+      (primaryActionClick)="onCreateNew()">
+    </app-empty-state>
+
+    <app-empty-state
+      *ngIf="!loading && filteredForms.length === 0 && searchTerm && forms.length > 0"
+      icon="search_off"
+      title="No Forms Found"
+      [message]="'No forms match your search criteria: ' + searchTerm"
+      [primaryAction]="clearSearchAction"
+      (primaryActionClick)="clearSearch()">
+    </app-empty-state>
+
+    <div *ngIf="!loading && filteredForms.length > 0" class="forms-grid">
+      <app-form-card
+        *ngFor="let form of filteredForms"
+        [form]="form"
+        (action)="onFormAction($event)">
+      </app-form-card>
+    </div>
+  </div>
+</div>

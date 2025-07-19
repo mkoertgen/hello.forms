@@ -1,0 +1,7 @@
+<div class="loading-state">
+  <mat-spinner *ngIf="useSpinner; else iconTemplate" [diameter]="48"></mat-spinner>
+  <ng-template #iconTemplate>
+    <mat-icon>{{ icon }}</mat-icon>
+  </ng-template>
+  <p>{{ message }}</p>
+</div>

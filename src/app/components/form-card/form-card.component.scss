@@ -1,0 +1,52 @@
+.form-card {
+  height: fit-content;
+}
+
+.form-tags {
+  margin: 12px 0;
+}
+
+.form-tags mat-chip {
+  font-size: 0.8em;
+}
+
+.form-stats {
+  display: flex;
+  gap: 16px;
+  margin: 8px 0;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.form-stats span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.form-stats mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.form-author {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.form-author mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+mat-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

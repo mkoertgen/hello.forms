@@ -1,0 +1,29 @@
+<div class="empty-state">
+  <mat-icon>{{ icon }}</mat-icon>
+  <h2>{{ title }}</h2>
+  <p>{{ message }}</p>
+  <button 
+    *ngIf="primaryAction && primaryAction.raised"
+    mat-raised-button
+    [color]="primaryAction.color"
+    (click)="onPrimaryAction()">
+    <mat-icon>{{ primaryAction.icon }}</mat-icon>
+    {{ primaryAction.label }}
+  </button>
+  <button 
+    *ngIf="primaryAction && !primaryAction.raised"
+    mat-button
+    [color]="primaryAction.color"
+    (click)="onPrimaryAction()">
+    <mat-icon>{{ primaryAction.icon }}</mat-icon>
+    {{ primaryAction.label }}
+  </button>
+  <button 
+    *ngIf="secondaryAction"
+    mat-button
+    [color]="secondaryAction.color"
+    (click)="onSecondaryAction()">
+    <mat-icon>{{ secondaryAction.icon }}</mat-icon>
+    {{ secondaryAction.label }}
+  </button>
+</div>

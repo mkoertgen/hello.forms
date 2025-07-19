@@ -1,0 +1,27 @@
+.form-manager-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-toolbar {
+  flex-shrink: 0;
+  background: #1976d2;
+  color: white;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.forms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 16px;
+}
