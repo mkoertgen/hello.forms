@@ -1,0 +1,338 @@
+<div class="form-designer-container">
+  <!-- Main Toolbar -->
+  <mat-toolbar class="main-toolbar">
+    <mat-icon>build</mat-icon>
+    <span>Form Designer</span>
+    
+    <span class="spacer"></span>
+    
+    <button mat-button (click)="addStep()">
+      <mat-icon>add</mat-icon>
+      Add Step
+    </button>
+    
+    <button mat-button (click)="togglePreview()">
+      <mat-icon>{{state.previewMode ? 'edit' : 'preview'}}</mat-icon>
+      {{state.previewMode ? 'Edit' : 'Preview'}}
+    </button>
+    
+    <button mat-button (click)="exportSchema()">
+      <mat-icon>download</mat-icon>
+      Export
+    </button>
+    
+    <input 
+      type="file" 
+      #fileInput 
+      style="display: none" 
+      accept=".json"
+      (change)="onFileImport($event)">
+    <button mat-button (click)="fileInput.click()">
+      <mat-icon>upload</mat-icon>
+      Import
+    </button>
+  </mat-toolbar>
+
+  <div class="designer-layout">
+    <!-- Left Panel: SQL Schema -->
+    <mat-sidenav-container class="sidenav-container">
+      <mat-sidenav mode="side" opened class="left-panel">
+        <div class="panel-header">
+          <h3>SQL Schema</h3>
+        </div>
+        
+        <mat-accordion>
+          <mat-expansion-panel *ngFor="let table of state.sqlTables">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>table_chart</mat-icon>
+                {{table.name}}
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            
+            <div 
+              class="sql-columns-list">
+              <div 
+                *ngFor="let column of table.columns"
+                class="sql-column-item"
+                cdkDrag
+                [cdkDragData]="column">
+                <div class="column-info">
+                  <mat-icon class="column-icon">{{getSqlTypeIcon(column.type)}}</mat-icon>
+                  <div class="column-details">
+                    <span class="column-name">{{column.name}}</span>
+                    <small class="column-type">{{column.type}}{{column.maxLength ? '(' + column.maxLength + ')' : ''}}</small>
+                  </div>
+                  <div class="column-constraints">
+                    <mat-icon *ngIf="column.primaryKey" class="pk-icon" title="Primary Key">key</mat-icon>
+                    <mat-icon *ngIf="!column.nullable" class="required-icon" title="Required">star</mat-icon>
+                    <mat-icon *ngIf="column.foreignKey" class="fk-icon" title="Foreign Key">link</mat-icon>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-expansion-panel>
+        </mat-accordion>
+      </mat-sidenav>
+
+      <!-- Main Content: Form Designer -->
+      <mat-sidenav-content class="main-content">
+        <div class="form-header">
+          <mat-form-field appearance="outline" class="form-title-field">
+            <mat-label>Form Title</mat-label>
+            <input 
+              matInput 
+              [value]="state.schema.title"
+              (blur)="onFormTitleChange($event)"
+              placeholder="Enter form title">
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="form-description-field">
+            <mat-label>Description</mat-label>
+            <textarea 
+              matInput 
+              [value]="state.schema.description || ''"
+              (blur)="onFormDescriptionChange($event)"
+              placeholder="Enter form description"
+              rows="2">
+            </textarea>
+          </mat-form-field>
+        </div>
+
+        <!-- Form Fields or Steps -->
+        <div class="form-content" *ngIf="!state.previewMode">
+          <!-- Steps Mode -->
+          <mat-tab-group *ngIf="state.schema.steps && state.schema.steps.length > 0">
+            <mat-tab *ngFor="let step of state.schema.steps; let i = index" [label]="step.title">
+              <div class="step-header">
+                <mat-form-field appearance="outline">
+                  <mat-label>Step Title</mat-label>
+                  <input 
+                    matInput 
+                    [value]="step.title"
+                    (blur)="onStepTitleChange($event, step.id)">
+                </mat-form-field>
+                
+                <mat-form-field appearance="outline">
+                  <mat-label>Step Description</mat-label>
+                  <textarea 
+                    matInput 
+                    [value]="step.description || ''"
+                    (blur)="onStepDescriptionChange($event, step.id)"
+                    rows="2">
+                  </textarea>
+                </mat-form-field>
+                
+                <button mat-icon-button color="warn" (click)="removeStep(step.id)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+
+              <div 
+                class="drop-zone step-drop-zone"
+                cdkDropList
+                [cdkDropListData]="getStepFields(step)"
+                (cdkDropListDropped)="onFieldDrop($event)"
+                [cdkDropListConnectedTo]="getConnectedDropLists()">
+                <div 
+                  *ngFor="let field of getStepFields(step); let i = index"
+                  class="form-field"
+                  [class.selected]="state.selectedField?.id === field.id"
+                  cdkDrag
+                  (click)="selectField(field)">
+                  <div class="field-header">
+                    <mat-icon>{{getFieldIcon(field.type)}}</mat-icon>
+                    <span class="field-label">{{field.label}}</span>
+                    <span class="field-type">{{field.type}}</span>
+                    <div class="field-actions">
+                      <button mat-icon-button (click)="duplicateField(field); $event.stopPropagation()">
+                        <mat-icon>content_copy</mat-icon>
+                      </button>
+                      <button mat-icon-button color="warn" (click)="removeField(field.id); $event.stopPropagation()">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div class="field-preview">
+                    <ng-container [ngSwitch]="field.type">
+                      <input *ngSwitchCase="'text'" [placeholder]="field.placeholder" readonly>
+                      <input *ngSwitchCase="'email'" type="email" [placeholder]="field.placeholder" readonly>
+                      <input *ngSwitchCase="'number'" type="number" [placeholder]="field.placeholder" readonly>
+                      <textarea *ngSwitchCase="'textarea'" [placeholder]="field.placeholder" readonly></textarea>
+                      <select *ngSwitchCase="'select'" disabled>
+                        <option>Select option...</option>
+                        <option *ngFor="let option of field.options" [value]="option.value">{{option.label}}</option>
+                      </select>
+                      <div *ngSwitchCase="'checkbox'">
+                        <input type="checkbox" disabled> {{field.label}}
+                      </div>
+                      <input *ngSwitchCase="'date'" type="date" readonly>
+                      <input *ngSwitchCase="'datetime'" type="datetime-local" readonly>
+                    </ng-container>
+                  </div>
+                </div>
+                
+                <div *ngIf="getStepFields(step).length === 0" class="empty-drop-zone">
+                  <mat-icon>drag_indicator</mat-icon>
+                  <p>Drag fields here from the SQL schema or field palette</p>
+                </div>
+              </div>
+            </mat-tab>
+          </mat-tab-group>
+
+          <!-- Single Form Mode -->
+          <div 
+            *ngIf="!state.schema.steps || state.schema.steps.length === 0"
+            class="drop-zone single-form-drop-zone"
+            cdkDropList
+            [cdkDropListData]="state.schema.fields"
+            (cdkDropListDropped)="onFieldDrop($event)"
+            [cdkDropListConnectedTo]="getConnectedDropLists()">
+            <div 
+              *ngFor="let field of state.schema.fields; let i = index"
+              class="form-field"
+              [class.selected]="state.selectedField?.id === field.id"
+              cdkDrag
+              (click)="selectField(field)">
+              <div class="field-header">
+                <mat-icon>{{getFieldIcon(field.type)}}</mat-icon>
+                <span class="field-label">{{field.label}}</span>
+                <span class="field-type">{{field.type}}</span>
+                <div class="field-actions">
+                  <button mat-icon-button (click)="duplicateField(field); $event.stopPropagation()">
+                    <mat-icon>content_copy</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="removeField(field.id); $event.stopPropagation()">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="field-preview">
+                <ng-container [ngSwitch]="field.type">
+                  <input *ngSwitchCase="'text'" [placeholder]="field.placeholder" readonly>
+                  <input *ngSwitchCase="'email'" type="email" [placeholder]="field.placeholder" readonly>
+                  <input *ngSwitchCase="'number'" type="number" [placeholder]="field.placeholder" readonly>
+                  <textarea *ngSwitchCase="'textarea'" [placeholder]="field.placeholder" readonly></textarea>
+                  <select *ngSwitchCase="'select'" disabled>
+                    <option>Select option...</option>
+                    <option *ngFor="let option of field.options" [value]="option.value">{{option.label}}</option>
+                  </select>
+                  <div *ngSwitchCase="'checkbox'">
+                    <input type="checkbox" disabled> {{field.label}}
+                  </div>
+                  <input *ngSwitchCase="'date'" type="date" readonly>
+                  <input *ngSwitchCase="'datetime'" type="datetime-local" readonly>
+                </ng-container>
+              </div>
+            </div>
+            
+            <div *ngIf="state.schema.fields.length === 0" class="empty-drop-zone">
+              <mat-icon>drag_indicator</mat-icon>
+              <p>Drag fields here from the SQL schema or field palette</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview Mode -->
+        <div class="form-preview" *ngIf="state.previewMode">
+          <app-form-preview [schema]="state.schema"></app-form-preview>
+        </div>
+      </mat-sidenav-content>
+
+      <!-- Right Panel: Field Palette & Properties -->
+      <mat-sidenav mode="side" opened position="end" class="right-panel">
+        <mat-tab-group>
+          <!-- Field Palette -->
+          <mat-tab label="Fields">
+            <div class="panel-header">
+              <h4>Field Palette</h4>
+            </div>
+            
+            <div 
+              class="field-palette"
+              cdkDropList
+              cdkDropListSortingDisabled
+              [cdkDropListData]="state.dragDropFields"
+              id="field-palette">
+              <div 
+                *ngFor="let fieldType of state.dragDropFields"
+                class="palette-field"
+                cdkDrag
+                [cdkDragData]="fieldType">
+                <mat-icon>{{fieldType.icon}}</mat-icon>
+                <span>{{fieldType.label}}</span>
+              </div>
+            </div>
+          </mat-tab>
+
+          <!-- Field Properties -->
+          <mat-tab label="Properties">
+            <div class="panel-header">
+              <h4>Field Properties</h4>
+            </div>
+            
+            <div *ngIf="state.selectedField" class="field-properties">
+              <mat-form-field appearance="outline">
+                <mat-label>Field Name</mat-label>
+                <input 
+                  matInput 
+                  [value]="state.selectedField.name"
+                  (blur)="onFieldPropertyChange($event, 'name')">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Label</mat-label>
+                <input 
+                  matInput 
+                  [value]="state.selectedField.label"
+                  (blur)="onFieldPropertyChange($event, 'label')">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Placeholder</mat-label>
+                <input 
+                  matInput 
+                  [value]="state.selectedField.placeholder || ''"
+                  (blur)="onFieldPropertyChange($event, 'placeholder')">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Help Text</mat-label>
+                <textarea 
+                  matInput 
+                  [value]="state.selectedField.helpText || ''"
+                  (blur)="onFieldPropertyChange($event, 'helpText')"
+                  rows="2">
+                </textarea>
+              </mat-form-field>
+
+              <mat-checkbox 
+                [checked]="state.selectedField.required"
+                (change)="updateSelectedField({required: $event.checked})">
+                Required
+              </mat-checkbox>
+
+              <mat-form-field appearance="outline" *ngIf="state.selectedField.type === 'select' || state.selectedField.type === 'radio'">
+                <mat-label>Options (one per line)</mat-label>
+                <textarea 
+                  matInput 
+                  [value]="getOptionsText(state.selectedField.options)"
+                  (blur)="onFieldOptionsChange($event)"
+                  rows="4"
+                  placeholder="Option 1&#10;Option 2&#10;Option 3">
+                </textarea>
+              </mat-form-field>
+            </div>
+            
+            <div *ngIf="!state.selectedField" class="no-selection">
+              <mat-icon>info</mat-icon>
+              <p>Select a field to edit its properties</p>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </mat-sidenav>
+    </mat-sidenav-container>
+  </div>
+</div>

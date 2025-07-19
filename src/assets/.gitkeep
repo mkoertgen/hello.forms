@@ -1,0 +1,22 @@
+# Hello Forms Assets
+
+This directory contains static assets for the Hello Forms application:
+
+- Images
+- Icons
+- Fonts
+- Other static resources
+
+## Usage
+
+Reference assets in your Angular components using the `/assets/` path:
+
+```typescript
+// In component
+imageSrc = "/assets/images/logo.png";
+```
+
+```html
+<!-- In template -->
+<img src="/assets/images/logo.png" alt="Logo" />
+```
