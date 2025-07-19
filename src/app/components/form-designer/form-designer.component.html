@@ -122,8 +122,37 @@
         <!-- Form Fields or Steps -->
         <div class="form-content" *ngIf="!state.previewMode">
           <!-- Steps Mode -->
-          <mat-tab-group *ngIf="state.schema.steps && state.schema.steps.length > 0">
-            <mat-tab *ngFor="let step of state.schema.steps; let i = index" [label]="step.title">
+          <div *ngIf="state.schema.steps && state.schema.steps.length > 0" class="steps-container">
+            <!-- Step reordering area -->
+            <div class="steps-reorder-area">
+              <h4>Steps (drag to reorder)</h4>
+              <div 
+                class="steps-reorder-list"
+                cdkDropList
+                id="steps-reorder-list"
+                [cdkDropListData]="state.schema.steps"
+                (cdkDropListDropped)="onStepReorder($event)">
+                <div 
+                  *ngFor="let step of state.schema.steps; let i = index"
+                  class="step-reorder-item"
+                  cdkDrag>
+                  <div class="step-reorder-content">
+                    <mat-icon cdkDragHandle>drag_handle</mat-icon>
+                    <span class="step-number">{{i + 1}}</span>
+                    <span class="step-title">{{step.title}}</span>
+                    <div class="step-actions">
+                      <button mat-icon-button color="warn" (click)="removeStep(step.id)" [attr.title]="'Delete step'">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step tabs for editing -->
+            <mat-tab-group class="steps-tab-group">
+              <mat-tab *ngFor="let step of state.schema.steps; let i = index" [label]="step.title">
               <div class="step-header">
                 <mat-form-field appearance="outline">
                   <mat-label>Step Title</mat-label>
@@ -142,10 +171,6 @@
                     rows="2">
                   </textarea>
                 </mat-form-field>
-                
-                <button mat-icon-button color="warn" (click)="removeStep(step.id)">
-                  <mat-icon>delete</mat-icon>
-                </button>
               </div>
 
               <div 
@@ -201,6 +226,7 @@
               </div>
             </mat-tab>
           </mat-tab-group>
+          </div>
 
           <!-- Single Form Mode -->
           <div 

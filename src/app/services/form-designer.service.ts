@@ -65,20 +65,56 @@ export class FormDesignerService {
 
   // Form Schema Operations
   saveFormSchema(schema: FormSchema): Observable<FormSchema> {
-    // Update the ID based on the title if it's new or changed
+    // Ensure metadata exists
+    if (!schema.metadata) {
+      schema.metadata = {
+        id: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        author: this.getCurrentUser(),
+        tags: []
+      };
+    }
+    
     const titleSlug = this.generateTitleSlug(schema.title);
     const isUpdate = !!schema.metadata.originalId || this.isExistingForm(schema);
-    const formId = isUpdate ? (schema.metadata.originalId || schema.metadata.id) : titleSlug;
     
-    schema.metadata.id = titleSlug;
     schema.metadata.updatedAt = new Date();
     
     if (isUpdate) {
-      // Update existing form
-      return this.http.put<FormSchema>(`${this.apiUrl}/forms/${formId}`, schema);
+      // Update existing form - use originalId if available, otherwise current id
+      const formId = schema.metadata.originalId || schema.metadata.id;
+      
+      if (!formId) {
+        console.error('Cannot update form: no valid ID found');
+        throw new Error('Cannot update form: no valid ID found');
+      }
+      
+      console.log(`Updating form with original ID: ${formId}, title slug: ${titleSlug}`);
+      
+      // The server will handle ID changes if the title changed
+      return this.http.put<FormSchema>(`${this.apiUrl}/forms/${formId}`, schema).pipe(
+        map((savedSchema: FormSchema) => {
+          // Update originalId to track the new ID for future saves
+          savedSchema.metadata.originalId = savedSchema.metadata.id;
+          return savedSchema;
+        })
+      );
     } else {
       // Create new form
-      return this.http.post<FormSchema>(`${this.apiUrl}/forms`, schema);
+      schema.metadata.id = titleSlug;
+      if (!schema.metadata.createdAt) {
+        schema.metadata.createdAt = new Date();
+      }
+      
+      console.log(`Creating new form with ID: ${titleSlug}`);
+      return this.http.post<FormSchema>(`${this.apiUrl}/forms`, schema).pipe(
+        map((savedSchema: FormSchema) => {
+          // Set originalId to track it for future saves
+          savedSchema.metadata.originalId = savedSchema.metadata.id;
+          return savedSchema;
+        })
+      );
     }
   }
 
@@ -242,6 +278,31 @@ export class FormDesignerService {
   removeStep(stepId: string): void {
     const currentState = this.getState();
     const steps = (currentState.schema.steps || []).filter(step => step.id !== stepId);
+
+    this.updateState({
+      schema: { ...currentState.schema, steps }
+    });
+  }
+
+  moveStep(previousIndex: number, currentIndex: number): void {
+    const currentState = this.getState();
+    const steps = [...(currentState.schema.steps || [])];
+    
+    // Validate indices
+    if (previousIndex < 0 || previousIndex >= steps.length || 
+        currentIndex < 0 || currentIndex >= steps.length) {
+      console.warn('Invalid step indices for reordering');
+      return;
+    }
+    
+    // Move step from previousIndex to currentIndex
+    const [movedStep] = steps.splice(previousIndex, 1);
+    steps.splice(currentIndex, 0, movedStep);
+    
+    // Update order values to maintain consistency
+    steps.forEach((step, index) => {
+      step.order = index + 1;
+    });
 
     this.updateState({
       schema: { ...currentState.schema, steps }

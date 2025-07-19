@@ -262,31 +262,94 @@ app.put('/api/forms/:id', (req, res) => {
   const formId = req.params.id;
   const schema = req.body;
   
+  // Generate new ID based on the current title
+  const newFormId = generateTitleSlug(schema.title);
+  
   const formData = {
     title: schema.title,
     description: schema.description || '',
     schema_json: JSON.stringify(schema)
   };
   
-  db.run(
-    `UPDATE forms 
-     SET title = ?, description = ?, schema_json = ?, updated_at = CURRENT_TIMESTAMP 
-     WHERE id = ?`,
-    [formData.title, formData.description, formData.schema_json, formId],
-    function(err) {
+  // Check if we need to update the ID (title changed)
+  if (formId !== newFormId) {
+    // Check if the new ID already exists (different form)
+    db.get("SELECT id FROM forms WHERE id = ? AND id != ?", [newFormId, formId], (err, existingRow) => {
       if (err) {
         res.status(500).json({ error: err.message });
         return;
       }
       
-      if (this.changes === 0) {
-        res.status(404).json({ error: 'Form not found' });
+      if (existingRow) {
+        res.status(409).json({ error: 'A form with this title already exists' });
         return;
       }
       
-      res.json(schema);
-    }
-  );
+      // Update with new ID - we need to insert new record and delete old one
+      // because SQLite doesn't support updating primary keys directly
+      db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+        
+        // Insert new record with new ID
+        db.run(
+          `INSERT INTO forms (id, title, description, schema_json, created_at, updated_at) 
+           SELECT ?, ?, ?, ?, created_at, CURRENT_TIMESTAMP FROM forms WHERE id = ?`,
+          [newFormId, formData.title, formData.description, formData.schema_json, formId],
+          function(insertErr) {
+            if (insertErr) {
+              db.run("ROLLBACK");
+              res.status(500).json({ error: insertErr.message });
+              return;
+            }
+            
+            // Delete old record
+            db.run("DELETE FROM forms WHERE id = ?", [formId], function(deleteErr) {
+              if (deleteErr) {
+                db.run("ROLLBACK");
+                res.status(500).json({ error: deleteErr.message });
+                return;
+              }
+              
+              if (this.changes === 0) {
+                db.run("ROLLBACK");
+                res.status(404).json({ error: 'Original form not found' });
+                return;
+              }
+              
+              db.run("COMMIT");
+              
+              // Update the schema with the new ID
+              schema.metadata.id = newFormId;
+              res.json(schema);
+            });
+          }
+        );
+      });
+    });
+  } else {
+    // Simple update - ID stays the same
+    db.run(
+      `UPDATE forms 
+       SET title = ?, description = ?, schema_json = ?, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = ?`,
+      [formData.title, formData.description, formData.schema_json, formId],
+      function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        if (this.changes === 0) {
+          res.status(404).json({ error: 'Form not found' });
+          return;
+        }
+        
+        // Update the schema with the current ID
+        schema.metadata.id = formId;
+        res.json(schema);
+      }
+    );
+  }
 });
 
 // Delete form

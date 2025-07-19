@@ -1,0 +1,19 @@
+<mat-toolbar color="primary" class="toolbar">
+  <button mat-button routerLink="/" class="home-link">
+    <mat-icon>build</mat-icon>
+    <span>Forms Admin</span>
+  </button>
+  <span class="spacer"></span>
+  <button mat-button routerLink="/manage" routerLinkActive="active">
+    <mat-icon>folder</mat-icon>
+    Manager
+  </button>
+  <button mat-button routerLink="/design" routerLinkActive="active">
+    <mat-icon>design_services</mat-icon>
+    Designer
+  </button>
+</mat-toolbar>
+
+<main>
+  <router-outlet></router-outlet>
+</main>

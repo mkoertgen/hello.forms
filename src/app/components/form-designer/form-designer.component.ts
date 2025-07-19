@@ -73,22 +73,52 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
   // --- Save/Load Form Logic ---
   onSaveForm(): void {
     const schema = this.state.schema;
+    
+    // Validate form before saving
+    if (!schema.title || schema.title.trim().length === 0) {
+      alert('Please enter a form title before saving.');
+      return;
+    }
+    
     const isUpdate = !!schema.metadata.originalId || this.isExistingForm(schema);
+    
+    console.log('Saving form:', {
+      title: schema.title,
+      isUpdate,
+      originalId: schema.metadata.originalId,
+      currentId: schema.metadata.id,
+      createdAt: schema.metadata.createdAt
+    });
     
     this.formDesignerService.saveFormSchema(schema).subscribe({
       next: (savedSchema) => {
         const action = isUpdate ? 'updated' : 'created';
-        alert(`Form "${savedSchema.title}" ${action} successfully with ID: ${savedSchema.metadata.id}`);
+        console.log(`Form ${action} successfully:`, savedSchema);
         
         // Update the current schema with the saved data
         this.formDesignerService.updateState({ schema: savedSchema });
+        
+        // Show success message with any ID changes
+        const idChanged = schema.metadata.id !== savedSchema.metadata.id;
+        const idMessage = idChanged ? ` (ID changed from "${schema.metadata.id}" to "${savedSchema.metadata.id}")` : '';
+        
+        alert(`Form "${savedSchema.title}" ${action} successfully with ID: ${savedSchema.metadata.id}${idMessage}`);
       },
       error: (err) => {
-        console.error('Save error:', err);
-        if (err.status === 409) {
+        console.error('Save error details:', {
+          status: err.status,
+          statusText: err.statusText,
+          error: err.error,
+          url: err.url,
+          message: err.message
+        });
+        
+        if (err.status === 404) {
+          alert(`Error: Form not found (404). The form may have been deleted or the ID changed.\n\nDetails: ${err.error?.message || err.message}`);
+        } else if (err.status === 409) {
           alert('A form with this title already exists. Please choose a different title.');
         } else {
-          alert('Error saving form: ' + (err?.error?.message || err?.message || 'Unknown error'));
+          alert(`Error saving form (${err.status}): ${err.error?.message || err.message || 'Unknown error'}`);
         }
       }
     });
@@ -383,6 +413,12 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
 
   removeStep(stepId: string): void {
     this.formDesignerService.removeStep(stepId);
+  }
+
+  onStepReorder(event: CdkDragDrop<FormStep[]>): void {
+    if (event.previousIndex !== event.currentIndex) {
+      this.formDesignerService.moveStep(event.previousIndex, event.currentIndex);
+    }
   }
 
   addFieldToStep(stepId: string, fieldId: string): void {

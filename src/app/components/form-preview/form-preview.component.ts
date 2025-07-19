@@ -52,30 +52,53 @@ export class FormPreviewComponent implements OnInit, OnDestroy {
       // Build step forms
       this.stepFormGroups = this.schema.steps.map(step => {
         const formGroup = this.formBuilder.group({});
-        step.fields.forEach(fieldId => {
-          const field = this.getFieldById(fieldId);
-          if (field) {
-            const validators = field.required ? [Validators.required] : [];
-            if (field.type === 'email') {
-              validators.push(Validators.email);
+        
+        if (step.fields && Array.isArray(step.fields)) {
+          step.fields.forEach(fieldId => {
+            const field = this.getFieldById(fieldId);
+            if (field && field.name) {
+              const validators = this.buildValidators(field);
+              formGroup.addControl(field.name, this.formBuilder.control('', validators));
             }
-            formGroup.addControl(field.name, this.formBuilder.control('', validators));
-          }
-        });
+          });
+        }
+        
         return formGroup;
       });
     } else {
       // Build single form
-      const formControls: any = {};
-      this.schema.fields?.forEach(field => {
-        const validators = field.required ? [Validators.required] : [];
-        if (field.type === 'email') {
-          validators.push(Validators.email);
-        }
-        formControls[field.name] = ['', validators];
-      });
+      const formControls: { [key: string]: [string, any[]] } = {};
+      
+      if (this.schema.fields && Array.isArray(this.schema.fields)) {
+        this.schema.fields.forEach(field => {
+          if (field && field.name) {
+            const validators = this.buildValidators(field);
+            formControls[field.name] = ['', validators];
+          }
+        });
+      }
+      
       this.singleFormGroup = this.formBuilder.group(formControls);
     }
+  }
+
+  private buildValidators(field: FormField): any[] {
+    const validators: any[] = [];
+    
+    if (field.required) {
+      validators.push(Validators.required);
+    }
+    
+    if (field.type === 'email') {
+      validators.push(Validators.email);
+    }
+    
+    // Add more validators based on field type
+    if (field.type === 'number') {
+      validators.push(Validators.pattern(/^\d+$/));
+    }
+    
+    return validators;
   }
 
   getFieldById(fieldId: string): FormField | undefined {
