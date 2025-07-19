@@ -169,19 +169,9 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
       if (isStepDrop) {
         // Reordering within a step
         const stepIndex = parseInt(containerId.replace('step-drop-zone-', ''));
-        moveItemInArray(
-          event.container.data, 
-          event.previousIndex, 
-          event.currentIndex
-        );
         this.formDesignerService.moveFieldInStep(stepIndex, event.previousIndex, event.currentIndex);
       } else if (isMainDrop) {
         // Reordering in main form area
-        moveItemInArray(
-          event.container.data, 
-          event.previousIndex, 
-          event.currentIndex
-        );
         this.formDesignerService.moveField(event.previousIndex, event.currentIndex);
       }
     } else {

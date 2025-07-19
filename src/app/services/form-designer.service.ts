@@ -28,7 +28,8 @@ export class FormDesignerService {
         id: this.generateTitleSlug('New Form'),
         createdAt: new Date(),
         updatedAt: new Date(),
-        author: this.getCurrentUser()
+        author: this.getCurrentUser(),
+        tags: []
       },
       fields: [],
       validationRules: this.getDefaultValidationRules()
@@ -131,7 +132,8 @@ export class FormDesignerService {
         id: this.generateTitleSlug('New Form'),
         createdAt: new Date(),
         updatedAt: new Date(),
-        author: this.getCurrentUser()
+        author: this.getCurrentUser(),
+        tags: []
       },
       fields: [],
       validationRules: this.getDefaultValidationRules()
