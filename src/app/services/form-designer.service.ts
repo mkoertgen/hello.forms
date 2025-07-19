@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { 
   FormSchema, 
@@ -24,10 +25,10 @@ export class FormDesignerService {
       description: '',
       version: '1.0.0',
       metadata: {
-        id: this.generateId(),
+        id: this.generateTitleSlug('New Form'),
         createdAt: new Date(),
         updatedAt: new Date(),
-        author: 'User'
+        author: this.getCurrentUser()
       },
       fields: [],
       validationRules: this.getDefaultValidationRules()
@@ -52,6 +53,10 @@ export class FormDesignerService {
     
     if (updates.schema) {
       newState.schema.metadata.updatedAt = new Date();
+      // Update ID if title changed
+      if (updates.schema.title && updates.schema.title !== currentState.schema.title) {
+        newState.schema.metadata.id = this.generateTitleSlug(updates.schema.title);
+      }
     }
     
     this.stateSubject.next(newState);
@@ -59,11 +64,40 @@ export class FormDesignerService {
 
   // Form Schema Operations
   saveFormSchema(schema: FormSchema): Observable<FormSchema> {
-    return this.http.post<FormSchema>(`${this.apiUrl}/forms`, schema);
+    // Update the ID based on the title if it's new or changed
+    const titleSlug = this.generateTitleSlug(schema.title);
+    const isUpdate = !!schema.metadata.originalId || this.isExistingForm(schema);
+    const formId = isUpdate ? (schema.metadata.originalId || schema.metadata.id) : titleSlug;
+    
+    schema.metadata.id = titleSlug;
+    schema.metadata.updatedAt = new Date();
+    
+    if (isUpdate) {
+      // Update existing form
+      return this.http.put<FormSchema>(`${this.apiUrl}/forms/${formId}`, schema);
+    } else {
+      // Create new form
+      return this.http.post<FormSchema>(`${this.apiUrl}/forms`, schema);
+    }
+  }
+
+  private isExistingForm(schema: FormSchema): boolean {
+    // Check if this form was loaded from the API (has creation date that's not recent)
+    const createdAt = new Date(schema.metadata.createdAt);
+    const now = new Date();
+    const timeDiff = now.getTime() - createdAt.getTime();
+    // If created more than 1 minute ago, consider it existing
+    return timeDiff > 60000;
   }
 
   loadFormSchema(id: string): Observable<FormSchema> {
-    return this.http.get<FormSchema>(`${this.apiUrl}/forms/${id}`);
+    return this.http.get<FormSchema>(`${this.apiUrl}/forms/${id}`).pipe(
+      map((schema: FormSchema) => {
+        // Set originalId when loading to track it's an existing form
+        schema.metadata.originalId = schema.metadata.id;
+        return schema;
+      })
+    );
   }
 
   exportFormSchema(): string {
@@ -80,10 +114,31 @@ export class FormDesignerService {
     }
   }
 
+  createNewForm(): void {
+    const newSchema: FormSchema = {
+      title: 'New Form',
+      description: '',
+      version: '1.0.0',
+      metadata: {
+        id: this.generateTitleSlug('New Form'),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        author: this.getCurrentUser()
+      },
+      fields: [],
+      validationRules: this.getDefaultValidationRules()
+    };
+
+    this.updateState({ 
+      schema: newSchema,
+      selectedField: undefined,
+      previewMode: false
+    });
+  }
+
   // Field Operations
-  addField(field: Partial<FormField>, insertAt?: number): void {
-    const currentState = this.getState();
-    const newField: FormField = {
+  createField(field: Partial<FormField>): FormField {
+    return {
       id: this.generateId(),
       name: field.name || `field_${Date.now()}`,
       label: field.label || 'New Field',
@@ -91,6 +146,11 @@ export class FormDesignerService {
       required: field.required || false,
       ...field
     };
+  }
+
+  addField(field: Partial<FormField>, insertAt?: number): void {
+    const currentState = this.getState();
+    const newField: FormField = this.createField(field);
 
     const fields = [...currentState.schema.fields];
     if (insertAt !== undefined && insertAt >= 0) {
@@ -176,6 +236,72 @@ export class FormDesignerService {
     this.updateState({
       schema: { ...currentState.schema, steps }
     });
+  }
+
+  // Step field operations
+  addFieldToStep(field: FormField, stepIndex: number, insertAt?: number): void {
+    const currentState = this.getState();
+    const steps = [...(currentState.schema.steps || [])];
+    
+    if (stepIndex >= 0 && stepIndex < steps.length) {
+      const step = { ...steps[stepIndex] };
+      const stepFields = [...step.fields];
+      
+      if (insertAt !== undefined && insertAt >= 0) {
+        stepFields.splice(insertAt, 0, field.id);
+      } else {
+        stepFields.push(field.id);
+      }
+      
+      step.fields = stepFields;
+      steps[stepIndex] = step;
+      
+      // Also add the field to the main fields array if it's not already there
+      const fields = [...currentState.schema.fields];
+      if (!fields.find(f => f.id === field.id)) {
+        fields.push(field);
+      }
+      
+      this.updateState({
+        schema: { ...currentState.schema, fields, steps }
+      });
+    }
+  }
+
+  moveFieldInStep(stepIndex: number, fromIndex: number, toIndex: number): void {
+    const currentState = this.getState();
+    const steps = [...(currentState.schema.steps || [])];
+    
+    if (stepIndex >= 0 && stepIndex < steps.length) {
+      const step = { ...steps[stepIndex] };
+      const stepFields = [...step.fields];
+      
+      // Move the field ID within the step's fields array
+      const [movedFieldId] = stepFields.splice(fromIndex, 1);
+      stepFields.splice(toIndex, 0, movedFieldId);
+      
+      step.fields = stepFields;
+      steps[stepIndex] = step;
+      
+      this.updateState({
+        schema: { ...currentState.schema, steps }
+      });
+    }
+  }
+
+  removeFieldFromStep(stepIndex: number, fieldId: string): void {
+    const currentState = this.getState();
+    const steps = [...(currentState.schema.steps || [])];
+    
+    if (stepIndex >= 0 && stepIndex < steps.length) {
+      const step = { ...steps[stepIndex] };
+      step.fields = step.fields.filter(id => id !== fieldId);
+      steps[stepIndex] = step;
+      
+      this.updateState({
+        schema: { ...currentState.schema, steps }
+      });
+    }
   }
 
   // Validation Rules
@@ -309,5 +435,20 @@ export class FormDesignerService {
       { id: 'section_header', type: 'section_header', label: 'Section Header', icon: 'title' },
       { id: 'divider', type: 'divider', label: 'Divider', icon: 'horizontal_rule' }
     ];
+  }
+
+  private generateTitleSlug(title: string): string {
+    return title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-')     // Replace spaces with hyphens
+      .replace(/-+/g, '-')      // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, '');   // Remove leading/trailing hyphens
+  }
+
+  private getCurrentUser(): string {
+    // For now, return a default user. In a real app, you'd get this from authentication
+    return 'Current User';
   }
 }

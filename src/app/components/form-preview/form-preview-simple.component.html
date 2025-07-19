@@ -1,0 +1,69 @@
+<div class="form-preview-container">
+  <mat-card class="form-card">
+    <mat-card-header>
+      <mat-card-title>{{schema.title}}</mat-card-title>
+      <mat-card-subtitle *ngIf="schema.description">{{schema.description}}</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- Multi-step form (simplified without stepper) -->
+      <div *ngIf="schema.steps && schema.steps.length > 0; else singleForm">
+        <div *ngFor="let step of schema.steps; let i = index" class="step-content">
+          <h3>Step {{i + 1}}: {{step.title}}</h3>
+          <p *ngIf="step.description">{{step.description}}</p>
+          
+          <form [formGroup]="stepFormGroups[i]" class="step-form">
+            <ng-container *ngFor="let fieldId of step.fields">
+              <ng-container *ngIf="getFieldById(fieldId) as field">
+                <app-form-field [field]="field" [formGroup]="stepFormGroups[i]"></app-form-field>
+              </ng-container>
+            </ng-container>
+          </form>
+        </div>
+        
+        <div class="form-actions">
+          <button 
+            mat-raised-button 
+            color="primary"
+            (click)="onSubmit()">
+            Submit All Steps
+          </button>
+        </div>
+      </div>
+
+      <!-- Single form template -->
+      <ng-template #singleForm>
+        <form [formGroup]="singleFormGroup" class="single-form" (ngSubmit)="onSubmit()">
+          <ng-container *ngFor="let field of schema.fields">
+            <div class="field-container">
+              <app-form-field 
+                [field]="field" 
+                [formGroup]="singleFormGroup">
+              </app-form-field>
+            </div>
+          </ng-container>
+
+          <div class="form-actions">
+            <button 
+              mat-raised-button 
+              color="primary"
+              type="submit"
+              [disabled]="singleFormGroup.invalid">
+              Submit
+            </button>
+          </div>
+        </form>
+      </ng-template>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Form Data Preview -->
+  <mat-card class="data-preview" *ngIf="showDataPreview">
+    <mat-card-header>
+      <mat-card-title>Form Data</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <pre>{{getFormData() | json}}</pre>
+    </mat-card-content>
+  </mat-card>
+</div>

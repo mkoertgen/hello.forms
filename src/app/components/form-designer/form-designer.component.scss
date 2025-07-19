@@ -236,7 +236,7 @@
     .field-actions {
       display: flex;
       gap: 4px;
-      opacity: 0;
+      opacity: 0.7;
       transition: opacity 0.2s ease;
 
       button {
@@ -250,6 +250,10 @@
   }
 
   &:hover .field-actions {
+    opacity: 1;
+  }
+
+  &.selected .field-actions {
     opacity: 1;
   }
 
@@ -400,6 +404,131 @@
         position: absolute;
         z-index: 10;
       }
+    }
+  }
+}
+
+// Fix for CDK drag preview z-index
+:host ::ng-deep .cdk-drag-preview {
+  z-index: 1000 !important;
+}
+
+:host ::ng-deep .cdk-drag-placeholder {
+  opacity: 0.5;
+}
+
+:host ::ng-deep .cdk-drop-list-dragging .cdk-drag {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// Load Dialog Styles
+.load-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+
+  .load-dialog {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    min-width: 600px;
+    max-width: 800px;
+    width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+
+    h3 {
+      margin: 0 0 16px 0;
+      color: #333;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+    }
+
+    .loading, .error, .empty {
+      padding: 32px;
+      text-align: center;
+      color: #666;
+
+      mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      p {
+        margin: 0;
+        font-size: 1.1em;
+      }
+    }
+
+    .error {
+      color: #d32f2f;
+
+      mat-icon {
+        color: #d32f2f;
+      }
+    }
+
+      mat-list {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        max-height: 400px;
+        overflow-y: auto;
+
+        mat-list-item {
+          cursor: pointer;
+          border-bottom: 1px solid #eee;
+          padding: 16px 20px;
+          min-height: 80px;
+
+          &:hover {
+            background: #f5f5f5;
+          }
+
+          &.selected {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+          }
+
+          .form-title {
+            font-weight: 500;
+            font-size: 1.1em;
+            margin-bottom: 6px;
+            color: #333;
+          }
+
+          .form-author {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+          }
+
+          .form-date {
+            color: #999;
+            font-size: 0.85em;
+          }
+        }
+      }    .dialog-actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
     }
   }
 }

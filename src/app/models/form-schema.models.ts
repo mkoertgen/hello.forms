@@ -49,6 +49,7 @@ export interface FormSchema {
 
 export interface FormMetadata {
   id: string;
+  originalId?: string; // Tracks the original ID when title changes
   createdAt: Date;
   updatedAt: Date;
   author: string;

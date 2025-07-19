@@ -101,15 +101,4 @@ export class FormPreviewComponent implements OnInit {
       return this.singleFormGroup.valid;
     }
   }
-
-  getFormData(): any {
-    if (this.schema.steps && this.schema.steps.length > 0) {
-      return this.stepFormGroups.reduce((acc, formGroup, index) => {
-        acc[`step_${index + 1}`] = formGroup.value;
-        return acc;
-      }, {} as any);
-    } else {
-      return this.singleFormGroup.value;
-    }
-  }
 }

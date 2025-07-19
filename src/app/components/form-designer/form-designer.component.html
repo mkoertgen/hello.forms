@@ -10,17 +10,32 @@
       <mat-icon>add</mat-icon>
       Add Step
     </button>
-    
+
     <button mat-button (click)="togglePreview()">
       <mat-icon>{{state.previewMode ? 'edit' : 'preview'}}</mat-icon>
       {{state.previewMode ? 'Edit' : 'Preview'}}
     </button>
-    
+
+    <button mat-button (click)="onNewForm()">
+      <mat-icon>note_add</mat-icon>
+      New
+    </button>
+
+    <button mat-button (click)="onSaveForm()">
+      <mat-icon>save</mat-icon>
+      Save
+    </button>
+
+    <button mat-button (click)="onOpenLoadDialog()">
+      <mat-icon>folder_open</mat-icon>
+      Load
+    </button>
+
     <button mat-button (click)="exportSchema()">
       <mat-icon>download</mat-icon>
       Export
     </button>
-    
+
     <input 
       type="file" 
       #fileInput 
@@ -31,6 +46,38 @@
       <mat-icon>upload</mat-icon>
       Import
     </button>
+
+    <!-- Load Form Dialog -->
+    <div *ngIf="showLoadDialog" class="load-dialog-backdrop">
+      <div class="load-dialog">
+        <h3>Load Saved Form</h3>
+        <button mat-icon-button class="close-btn" (click)="showLoadDialog = false"><mat-icon>close</mat-icon></button>
+        <div *ngIf="loadingForms" class="loading">
+          <mat-icon>hourglass_empty</mat-icon>
+          <p>Loading forms...</p>
+        </div>
+        <div *ngIf="!loadingForms && loadError" class="error">
+          <mat-icon>error</mat-icon>
+          <p>{{loadError}}</p>
+        </div>
+        <mat-list *ngIf="!loadingForms && savedForms.length > 0">
+          <mat-list-item *ngFor="let form of savedForms" (click)="selectedFormId = form.id" 
+                         [class.selected]="selectedFormId === form.id">
+            <div class="form-title">{{form.title}}</div>
+            <div class="form-author">by {{form.schema?.metadata?.author || 'Unknown'}}</div>
+            <div class="form-date">{{form.updated_at | date:'short'}}</div>
+          </mat-list-item>
+        </mat-list>
+        <div *ngIf="!loadingForms && savedForms.length === 0" class="empty">
+          <mat-icon>folder_open</mat-icon>
+          <p>No saved forms found.</p>
+        </div>
+        <div class="dialog-actions">
+          <button mat-raised-button color="primary" (click)="onLoadSelectedForm()" [disabled]="!selectedFormId">Load Selected Form</button>
+          <button mat-button (click)="showLoadDialog = false">Cancel</button>
+        </div>
+      </div>
+    </div>
   </mat-toolbar>
 
   <div class="designer-layout">
@@ -42,7 +89,7 @@
         </div>
         
         <mat-accordion>
-          <mat-expansion-panel *ngFor="let table of state.sqlTables">
+          <mat-expansion-panel *ngFor="let table of state.sqlTables; let tableIndex = index">
             <mat-expansion-panel-header>
               <mat-panel-title>
                 <mat-icon>table_chart</mat-icon>
@@ -51,7 +98,12 @@
             </mat-expansion-panel-header>
             
             <div 
-              class="sql-columns-list">
+              class="sql-columns-list"
+              cdkDropList
+              [id]="'sql-columns-' + tableIndex"
+              cdkDropListSortingDisabled
+              [cdkDropListData]="table.columns"
+              [cdkDropListConnectedTo]="getTargetDropLists()">>
               <div 
                 *ngFor="let column of table.columns"
                 class="sql-column-item"
@@ -131,6 +183,7 @@
               <div 
                 class="drop-zone step-drop-zone"
                 cdkDropList
+                [id]="'step-drop-zone-' + i"
                 [cdkDropListData]="getStepFields(step)"
                 (cdkDropListDropped)="onFieldDrop($event)"
                 [cdkDropListConnectedTo]="getConnectedDropLists()">
@@ -186,6 +239,7 @@
             *ngIf="!state.schema.steps || state.schema.steps.length === 0"
             class="drop-zone single-form-drop-zone"
             cdkDropList
+            id="main-drop-zone"
             [cdkDropListData]="state.schema.fields"
             (cdkDropListDropped)="onFieldDrop($event)"
             [cdkDropListConnectedTo]="getConnectedDropLists()">

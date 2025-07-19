@@ -1,3 +1,7 @@
+// ...existing imports...
+import { FormSchema } from '../../models/form-schema.models';
+import { HttpClient } from '@angular/common/http';
+import { finalize } from 'rxjs/operators';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -13,6 +17,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatListModule } from '@angular/material/list';
 import { Subscription } from 'rxjs';
 
 import { FormDesignerService } from '../../services/form-designer.service';
@@ -46,6 +51,7 @@ import {
     MatTabsModule,
     MatExpansionModule,
     MatToolbarModule,
+    MatListModule,
     FormPreviewComponent
   ],
   templateUrl: './form-designer.component.html',
@@ -55,25 +61,112 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
   state: FormDesignerState;
   private subscription = new Subscription();
 
+  // For Save/Load UI
+  showLoadDialog = false;
+  savedForms: any[] = [];
+  selectedFormId: string | null = null;
+  loadingForms = false;
+  loadError: string | null = null;
+
   constructor(
     private formDesignerService: FormDesignerService,
-    private sqlSchemaService: SqlSchemaService
+    private sqlSchemaService: SqlSchemaService,
+    private http: HttpClient
   ) {
     this.state = this.formDesignerService.getState();
   }
+  // --- Save/Load Form Logic ---
+  onNewForm(): void {
+    if (confirm('Are you sure you want to create a new form? Any unsaved changes will be lost.')) {
+      this.formDesignerService.createNewForm();
+    }
+  }
+
+  onSaveForm(): void {
+    const schema = this.state.schema;
+    const isUpdate = !!schema.metadata.originalId || this.isExistingForm(schema);
+    
+    this.formDesignerService.saveFormSchema(schema).subscribe({
+      next: (savedSchema) => {
+        const action = isUpdate ? 'updated' : 'created';
+        alert(`Form "${savedSchema.title}" ${action} successfully with ID: ${savedSchema.metadata.id}`);
+        
+        // Update the current schema with the saved data
+        this.formDesignerService.updateState({ schema: savedSchema });
+      },
+      error: (err) => {
+        console.error('Save error:', err);
+        if (err.status === 409) {
+          alert('A form with this title already exists. Please choose a different title.');
+        } else {
+          alert('Error saving form: ' + (err?.error?.message || err?.message || 'Unknown error'));
+        }
+      }
+    });
+  }
+
+  private isExistingForm(schema: FormSchema): boolean {
+    // Check if this form was loaded from the API (has creation date that's not recent)
+    const createdAt = new Date(schema.metadata.createdAt);
+    const now = new Date();
+    const timeDiff = now.getTime() - createdAt.getTime();
+    // If created more than 1 minute ago, consider it existing
+    return timeDiff > 60000;
+  }
+
+  onOpenLoadDialog(): void {
+    this.showLoadDialog = true;
+    this.loadingForms = true;
+    this.loadError = null;
+    this.selectedFormId = null;
+    this.http.get<any[]>('http://localhost:3000/api/forms')
+      .pipe(finalize(() => this.loadingForms = false))
+      .subscribe({
+        next: (forms) => {
+          this.savedForms = forms;
+        },
+        error: (err) => {
+          this.loadError = 'Failed to load forms.';
+        }
+      });
+  }
+
+  onLoadSelectedForm(): void {
+    if (!this.selectedFormId) return;
+    this.loadingForms = true;
+    this.formDesignerService.loadFormSchema(this.selectedFormId)
+      .pipe(finalize(() => this.loadingForms = false))
+      .subscribe({
+        next: (schema: FormSchema) => {
+          this.formDesignerService.updateState({ schema });
+          this.showLoadDialog = false;
+        },
+        error: (err) => {
+          this.loadError = 'Failed to load form.';
+        }
+      });
+  }
 
   ngOnInit(): void {
+    console.log('FormDesignerComponent initializing...');
     this.subscription.add(
       this.formDesignerService.state$.subscribe(state => {
+        console.log('State updated:', state);
         this.state = state;
       })
     );
 
     this.subscription.add(
       this.sqlSchemaService.tables$.subscribe(tables => {
+        console.log('SQL tables loaded:', tables);
         this.formDesignerService.updateState({ sqlTables: tables });
       })
     );
+    
+    // Log connected drop lists after component is initialized
+    setTimeout(() => {
+      console.log('Connected drop lists:', this.getConnectedDropLists());
+    }, 1000);
   }
 
   ngOnDestroy(): void {
@@ -82,43 +175,118 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
 
   // Helper method to get connected drop lists
   getConnectedDropLists(): string[] {
-    return ['field-palette'];
+    const lists = ['field-palette', 'main-drop-zone'];
+    
+    // Add SQL column drop lists for each table
+    if (this.state.sqlTables) {
+      for (let i = 0; i < this.state.sqlTables.length; i++) {
+        lists.push(`sql-columns-${i}`);
+      }
+    }
+    
+    // Add step drop zones if they exist
+    if (this.state.schema.steps) {
+      for (let i = 0; i < this.state.schema.steps.length; i++) {
+        lists.push(`step-drop-zone-${i}`);
+      }
+    }
+    
+    console.log('Connected drop lists:', lists);
+    console.log('Number of SQL tables:', this.state.sqlTables?.length || 0);
+    return lists;
+  }
+
+  // Helper method to get target drop lists (for SQL columns - they should only drop into form areas)
+  getTargetDropLists(): string[] {
+    const lists = ['main-drop-zone'];
+    
+    // Add step drop zones if they exist
+    if (this.state.schema.steps) {
+      for (let i = 0; i < this.state.schema.steps.length; i++) {
+        lists.push(`step-drop-zone-${i}`);
+      }
+    }
+    
+    console.log('Target drop lists for SQL columns:', lists);
+    return lists;
   }
 
   // Drag and Drop Operations
   onFieldDrop(event: CdkDragDrop<any[]>): void {
+    console.log('=== DROP EVENT TRIGGERED ===');
     console.log('Drop event:', event);
-    console.log('Previous container:', event.previousContainer);
-    console.log('Current container:', event.container);
+    console.log('Previous container ID:', event.previousContainer.id);
+    console.log('Current container ID:', event.container.id);
+    console.log('Previous container data:', event.previousContainer.data);
+    console.log('Current container data:', event.container.data);
     console.log('Drag data:', event.item.data);
+    console.log('Previous index:', event.previousIndex);
+    console.log('Current index:', event.currentIndex);
+
+    // Check if dropping into a step
+    const containerId = event.container.id;
+    const isStepDrop = containerId.startsWith('step-drop-zone-');
+    const isMainDrop = containerId === 'main-drop-zone';
 
     if (event.previousContainer === event.container) {
       // Reorder existing fields within the same container
-      console.log('Reordering fields');
-      moveItemInArray(
-        event.container.data, 
-        event.previousIndex, 
-        event.currentIndex
-      );
-      this.formDesignerService.moveField(event.previousIndex, event.currentIndex);
+      console.log('=== REORDERING FIELDS ===');
+      console.log('Moving from index', event.previousIndex, 'to index', event.currentIndex);
+      
+      if (isStepDrop) {
+        // Reordering within a step
+        const stepIndex = parseInt(containerId.replace('step-drop-zone-', ''));
+        console.log('Reordering within step', stepIndex);
+        moveItemInArray(
+          event.container.data, 
+          event.previousIndex, 
+          event.currentIndex
+        );
+        this.formDesignerService.moveFieldInStep(stepIndex, event.previousIndex, event.currentIndex);
+      } else if (isMainDrop) {
+        // Reordering in main form area
+        moveItemInArray(
+          event.container.data, 
+          event.previousIndex, 
+          event.currentIndex
+        );
+        this.formDesignerService.moveField(event.previousIndex, event.currentIndex);
+      }
     } else {
-      // Determine if this is from field palette or SQL column
+      // Moving between containers or adding new field
       const dragData = event.item.data;
+      console.log('=== ADDING NEW FIELD ===');
       console.log('Adding new field. Drag data:', dragData);
       
       // Check if it has the structure of a DragDropField (from palette)
       if (dragData && 'type' in dragData && 'label' in dragData && 'icon' in dragData) {
-        console.log('Adding field from palette');
+        console.log('=== ADDING FROM PALETTE ===');
         const dragDropField = dragData as DragDropField;
-        this.addFieldFromPalette(dragDropField, event.currentIndex);
+        
+        if (isStepDrop) {
+          const stepIndex = parseInt(containerId.replace('step-drop-zone-', ''));
+          console.log('Adding field to step', stepIndex);
+          this.addFieldFromPaletteToStep(dragDropField, stepIndex, event.currentIndex);
+        } else if (isMainDrop) {
+          console.log('Adding field to main form');
+          this.addFieldFromPalette(dragDropField, event.currentIndex);
+        }
       } else if (dragData && 'name' in dragData && 'type' in dragData) {
-        console.log('Adding field from SQL column');
+        console.log('=== ADDING FROM SQL COLUMN ===');
         // Handle SQL column drop
         const column = dragData as SQLColumn;
         const tableName = this.findTableNameForColumn(column);
         if (tableName) {
           const field = this.formDesignerService.createFieldFromSqlColumn(column, tableName);
-          this.formDesignerService.addField(field, event.currentIndex);
+          
+          if (isStepDrop) {
+            const stepIndex = parseInt(containerId.replace('step-drop-zone-', ''));
+            console.log('Adding SQL column to step', stepIndex);
+            this.formDesignerService.addFieldToStep(field, stepIndex, event.currentIndex);
+          } else if (isMainDrop) {
+            console.log('Adding SQL column to main form');
+            this.formDesignerService.addField(field, event.currentIndex);
+          }
         } else {
           console.error('Could not find table for column:', column);
         }
@@ -126,6 +294,18 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
         console.error('Unknown drag data structure:', dragData);
       }
     }
+  }
+
+  // Add method to handle adding fields to steps
+  private addFieldFromPaletteToStep(dragDropField: DragDropField, stepIndex: number, insertAt: number): void {
+    const field: Partial<FormField> = {
+      type: dragDropField.type,
+      label: dragDropField.label,
+      name: dragDropField.label.toLowerCase().replace(/\s+/g, '_')
+    };
+    
+    const newField = this.formDesignerService.createField(field);
+    this.formDesignerService.addFieldToStep(newField, stepIndex, insertAt);
   }
 
   onSqlColumnDrop(event: CdkDragDrop<any[]>): void {
@@ -187,7 +367,9 @@ export class FormDesignerComponent implements OnInit, OnDestroy {
   }
 
   removeField(fieldId: string): void {
+    console.log('Removing field:', fieldId);
     this.formDesignerService.removeField(fieldId);
+    console.log('Field removed, current fields:', this.state.schema.fields.length);
   }
 
   duplicateField(field: FormField): void {

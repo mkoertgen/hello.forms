@@ -218,7 +218,7 @@ app.get('/api/forms/:id', (req, res) => {
 // Create new form
 app.post('/api/forms', (req, res) => {
   const schema = req.body;
-  const formId = generateId();
+  const formId = schema.metadata?.id || generateTitleSlug(schema.title);
   
   const formData = {
     id: formId,
@@ -227,21 +227,34 @@ app.post('/api/forms', (req, res) => {
     schema_json: JSON.stringify(schema)
   };
   
-  db.run(
-    `INSERT INTO forms (id, title, description, schema_json) 
-     VALUES (?, ?, ?, ?)`,
-    [formData.id, formData.title, formData.description, formData.schema_json],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      
-      // Return the saved schema with the generated ID
-      schema.metadata.id = formId;
-      res.status(201).json(schema);
+  // Check if form with this ID already exists
+  db.get("SELECT id FROM forms WHERE id = ?", [formId], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
     }
-  );
+    
+    if (row) {
+      res.status(409).json({ error: 'A form with this title already exists' });
+      return;
+    }
+    
+    db.run(
+      `INSERT INTO forms (id, title, description, schema_json) 
+       VALUES (?, ?, ?, ?)`,
+      [formData.id, formData.title, formData.description, formData.schema_json],
+      function(err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        
+        // Return the saved schema with the generated ID
+        schema.metadata.id = formId;
+        res.status(201).json(schema);
+      }
+    );
+  });
 });
 
 // Update form
@@ -317,6 +330,16 @@ app.post('/api/forms/:id/submit', (req, res) => {
 // Utility functions
 function generateId() {
   return Math.random().toString(36).substr(2, 9);
+}
+
+function generateTitleSlug(title) {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-')     // Replace spaces with hyphens
+    .replace(/-+/g, '-')      // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, '');   // Remove leading/trailing hyphens
 }
 
 // Health check endpoint
