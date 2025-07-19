@@ -7,6 +7,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { FormSchema, FormField, FormStep } from '../../models/form-schema.models';
 import { FormFieldComponent } from '../form-field/form-field.component';
+import { ValidationService } from '../../services/validation.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -31,7 +32,10 @@ export class FormPreviewComponent implements OnInit, OnDestroy {
   singleFormGroup: FormGroup = new FormGroup({});
   private subscriptions = new Subscription();
 
-  constructor(private formBuilder: FormBuilder) {}
+  constructor(
+    private formBuilder: FormBuilder,
+    private validationService: ValidationService
+  ) {}
 
   ngOnInit(): void {
     this.buildForm();
@@ -57,7 +61,7 @@ export class FormPreviewComponent implements OnInit, OnDestroy {
           step.fields.forEach(fieldId => {
             const field = this.getFieldById(fieldId);
             if (field && field.name) {
-              const validators = this.buildValidators(field);
+              const validators = this.validationService.getValidatorsForField(field, this.schema.validationRules);
               formGroup.addControl(field.name, this.formBuilder.control('', validators));
             }
           });

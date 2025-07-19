@@ -11,8 +11,8 @@
       [placeholder]="field.placeholder || ''"
       [required]="field.required">
     <mat-hint *ngIf="field.helpText">{{field.helpText}}</mat-hint>
-    <mat-error *ngIf="formGroup.get(field.name)?.errors?.['required']">
-      {{field.label}} is required
+    <mat-error *ngIf="control?.invalid && (control?.dirty || control?.touched)">
+      {{getValidationMessage()}}
     </mat-error>
   </mat-form-field>
 
@@ -29,11 +29,8 @@
       [placeholder]="field.placeholder || ''"
       [required]="field.required">
     <mat-hint *ngIf="field.helpText">{{field.helpText}}</mat-hint>
-    <mat-error *ngIf="formGroup.get(field.name)?.errors?.['required']">
-      {{field.label}} is required
-    </mat-error>
-    <mat-error *ngIf="formGroup.get(field.name)?.errors?.['email']">
-      Please enter a valid email address
+    <mat-error *ngIf="control?.invalid && (control?.dirty || control?.touched)">
+      {{getValidationMessage()}}
     </mat-error>
   </mat-form-field>
 
@@ -50,8 +47,8 @@
       [placeholder]="field.placeholder || ''"
       [required]="field.required">
     <mat-hint *ngIf="field.helpText">{{field.helpText}}</mat-hint>
-    <mat-error *ngIf="formGroup.get(field.name)?.errors?.['required']">
-      {{field.label}} is required
+    <mat-error *ngIf="control?.invalid && (control?.dirty || control?.touched)">
+      {{getValidationMessage()}}
     </mat-error>
   </mat-form-field>
 
@@ -69,8 +66,8 @@
       rows="4">
     </textarea>
     <mat-hint *ngIf="field.helpText">{{field.helpText}}</mat-hint>
-    <mat-error *ngIf="formGroup.get(field.name)?.errors?.['required']">
-      {{field.label}} is required
+    <mat-error *ngIf="control?.invalid && (control?.dirty || control?.touched)">
+      {{getValidationMessage()}}
     </mat-error>
   </mat-form-field>
 
@@ -90,8 +87,8 @@
       </mat-option>
     </mat-select>
     <mat-hint *ngIf="field.helpText">{{field.helpText}}</mat-hint>
-    <mat-error *ngIf="formGroup.get(field.name)?.errors?.['required']">
-      {{field.label}} is required
+    <mat-error *ngIf="control?.invalid && (control?.dirty || control?.touched)">
+      {{getValidationMessage()}}
     </mat-error>
   </mat-form-field>
 
@@ -133,8 +130,8 @@
       [formControlName]="field.name"
       [required]="field.required">
     <mat-hint *ngIf="field.helpText">{{field.helpText}}</mat-hint>
-    <mat-error *ngIf="formGroup.get(field.name)?.errors?.['required']">
-      {{field.label}} is required
+    <mat-error *ngIf="control?.invalid && (control?.dirty || control?.touched)">
+      {{getValidationMessage()}}
     </mat-error>
   </mat-form-field>
 

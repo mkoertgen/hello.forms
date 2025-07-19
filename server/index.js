@@ -4,6 +4,11 @@ const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+const Ajv = require('ajv');
+const addFormats = require('ajv-formats');
+const yaml = require('js-yaml');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,6 +53,56 @@ db.serialize(() => {
     )
   `);
 });
+
+// Initialize AJV for validation
+const ajv = new Ajv({ allErrors: true, verbose: true, strict: false });
+addFormats(ajv);
+
+// Add custom formats
+ajv.addFormat('tel', /^[+]?[0-9\s\-\(\)]+$/);
+
+// Add custom keywords for form field metadata
+ajv.addKeyword({
+  keyword: 'x-field-type',
+  schemaType: 'string',
+  compile: () => () => true
+});
+
+ajv.addKeyword({
+  keyword: 'x-validation-message',
+  schemaType: 'string',
+  compile: () => () => true
+});
+
+ajv.addKeyword({
+  keyword: 'x-conditional',
+  schemaType: 'object',
+  compile: () => () => true
+});
+
+// Swagger configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.3',
+    info: {
+      title: 'Forms API',
+      version: '1.0.0',
+      description: 'Dynamic form builder and validation API'
+    },
+    servers: [
+      {
+        url: '/api',
+        description: 'API server'
+      }
+    ]
+  },
+  apis: ['./index.js'] // Path to the API docs
+};
+
+const swaggerSpecs = swaggerJsdoc(swaggerOptions);
+
+// Serve Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // Sample SQL schema data
 const sampleSqlSchema = {
@@ -403,6 +458,517 @@ function generateTitleSlug(title) {
     .replace(/\s+/g, '-')     // Replace spaces with hyphens
     .replace(/-+/g, '-')      // Replace multiple hyphens with single hyphen
     .replace(/^-|-$/g, '');   // Remove leading/trailing hyphens
+}
+
+/**
+ * @swagger
+ * /forms/{id}/_openapi:
+ *   get:
+ *     summary: Get OpenAPI specification for a form
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Form ID
+ *       - in: header
+ *         name: Accept
+ *         schema:
+ *           type: string
+ *           enum: [application/json, application/x-yaml]
+ *         description: Response format
+ *     responses:
+ *       200:
+ *         description: OpenAPI specification
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *           application/x-yaml:
+ *             schema:
+ *               type: string
+ *       404:
+ *         description: Form not found
+ */
+app.get('/api/forms/:id/_openapi', (req, res) => {
+  const formId = req.params.id;
+  const acceptHeader = req.headers.accept || 'application/json';
+  
+  db.get('SELECT * FROM forms WHERE id = ?', [formId], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!row) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+    
+    try {
+      const formSchema = JSON.parse(row.schema_json);
+      const openApiSpec = generateOpenAPISpecForForm(formSchema);
+      
+      if (acceptHeader.includes('application/x-yaml') || acceptHeader.includes('text/yaml')) {
+        res.setHeader('Content-Type', 'application/x-yaml');
+        res.send(yaml.dump(openApiSpec));
+      } else {
+        res.json(openApiSpec);
+      }
+    } catch (parseError) {
+      console.error('Schema parsing error:', parseError);
+      res.status(500).json({ error: 'Invalid form schema' });
+    }
+  });
+});
+
+/**
+ * @swagger
+ * /forms/{id}/validate:
+ *   post:
+ *     summary: Validate form data
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Form ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: Form data to validate
+ *     responses:
+ *       200:
+ *         description: Validation successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Validation successful"
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *       400:
+ *         description: Validation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed"
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       field:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *                       message:
+ *                         type: string
+ *                       value:
+ *                         type: string
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *       404:
+ *         description: Form not found
+ */
+app.post('/api/forms/:id/validate', (req, res) => {
+  const formId = req.params.id;
+  const formData = req.body;
+  
+  db.get('SELECT * FROM forms WHERE id = ?', [formId], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!row) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+    
+    try {
+      const formSchema = JSON.parse(row.schema_json);
+      const validationResult = validateFormData(formSchema, formData);
+      
+      if (validationResult.valid) {
+        res.json(validationResult);
+      } else {
+        res.status(400).json(validationResult);
+      }
+    } catch (parseError) {
+      console.error('Schema parsing error:', parseError);
+      res.status(500).json({ error: 'Invalid form schema' });
+    }
+  });
+});
+
+/**
+ * @swagger
+ * /forms/{id}/submit:
+ *   post:
+ *     summary: Submit form data
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Form ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: Form data to submit
+ *     responses:
+ *       201:
+ *         description: Form submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: Submission ID
+ *                 submittedAt:
+ *                   type: string
+ *                   format: date-time
+ *                 status:
+ *                   type: string
+ *                   enum: [submitted, processing, completed]
+ *       400:
+ *         description: Invalid form data
+ *       404:
+ *         description: Form not found
+ */
+app.post('/api/forms/:id/submit', (req, res) => {
+  const formId = req.params.id;
+  const formData = req.body;
+  
+  db.get('SELECT * FROM forms WHERE id = ?', [formId], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!row) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+    
+    try {
+      const formSchema = JSON.parse(row.schema_json);
+      const validationResult = validateFormData(formSchema, formData);
+      
+      if (!validationResult.valid) {
+        return res.status(400).json(validationResult);
+      }
+      
+      // Generate submission ID and save (in a real app, you'd save to a submissions table)
+      const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const submittedAt = new Date().toISOString();
+      
+      // For demo purposes, just return success
+      // In a real application, you would save the submission to a database
+      
+      res.status(201).json({
+        id: submissionId,
+        submittedAt,
+        status: 'submitted'
+      });
+      
+    } catch (parseError) {
+      console.error('Schema parsing error:', parseError);
+      res.status(500).json({ error: 'Invalid form schema' });
+    }
+  });
+});
+
+// Helper function to generate OpenAPI spec for a form
+function generateOpenAPISpecForForm(formSchema) {
+  const requestSchema = generateRequestSchemaFromForm(formSchema);
+  
+  return {
+    openapi: '3.0.3',
+    info: {
+      title: `${formSchema.title} API`,
+      description: formSchema.description || `Validation API for ${formSchema.title}`,
+      version: '1.0.0'
+    },
+    servers: [
+      {
+        url: '/api',
+        description: 'API server'
+      }
+    ],
+    paths: {
+      [`/forms/${formSchema.metadata.id}/validate`]: {
+        post: {
+          summary: `Validate ${formSchema.title} form data`,
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/FormData' }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Validation successful',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ValidationSuccess' }
+                }
+              }
+            },
+            '400': {
+              description: 'Validation failed',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ValidationError' }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    components: {
+      schemas: {
+        FormData: requestSchema,
+        ValidationSuccess: {
+          type: 'object',
+          properties: {
+            valid: { type: 'boolean', enum: [true] },
+            message: { type: 'string' },
+            timestamp: { type: 'string', format: 'date-time' }
+          }
+        },
+        ValidationError: {
+          type: 'object',
+          properties: {
+            valid: { type: 'boolean', enum: [false] },
+            message: { type: 'string' },
+            errors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  field: { type: 'string' },
+                  code: { type: 'string' },
+                  message: { type: 'string' },
+                  value: {}
+                }
+              }
+            },
+            timestamp: { type: 'string', format: 'date-time' }
+          }
+        }
+      }
+    }
+  };
+}
+
+// Helper function to generate JSON Schema from form schema
+function generateRequestSchemaFromForm(formSchema) {
+  const properties = {};
+  const required = [];
+
+  // Process form fields
+  const fieldsToProcess = formSchema.steps && formSchema.steps.length > 0
+    ? formSchema.fields.filter(field => 
+        formSchema.steps.some(step => step.fields.includes(field.id))
+      )
+    : formSchema.fields;
+
+  for (const field of fieldsToProcess) {
+    if (['section_header', 'divider'].includes(field.type)) {
+      continue; // Skip non-input fields
+    }
+
+    if (field.required) {
+      required.push(field.name);
+    }
+
+    properties[field.name] = generatePropertySchema(field);
+  }
+
+  return {
+    type: 'object',
+    title: `${formSchema.title} Form Data`,
+    properties,
+    required,
+    additionalProperties: false
+  };
+}
+
+// Helper function to generate property schema for a field
+function generatePropertySchema(field) {
+  const property = {
+    title: field.label,
+    description: field.helpText
+  };
+
+  // Set type based on field type
+  switch (field.type) {
+    case 'text':
+    case 'textarea':
+    case 'password':
+    case 'hidden':
+      property.type = 'string';
+      break;
+    case 'email':
+      property.type = 'string';
+      property.format = 'email';
+      break;
+    case 'url':
+      property.type = 'string';
+      property.format = 'uri';
+      break;
+    case 'tel':
+      property.type = 'string';
+      property.format = 'tel';
+      break;
+    case 'number':
+    case 'range':
+      property.type = 'number';
+      break;
+    case 'date':
+      property.type = 'string';
+      property.format = 'date';
+      break;
+    case 'datetime':
+      property.type = 'string';
+      property.format = 'date-time';
+      break;
+    case 'time':
+      property.type = 'string';
+      property.format = 'time';
+      break;
+    case 'checkbox':
+      property.type = 'boolean';
+      break;
+    case 'select':
+    case 'radio':
+      property.type = 'string';
+      if (field.options) {
+        property.enum = field.options.map(opt => opt.value);
+      }
+      break;
+    case 'multiselect':
+      property.type = 'array';
+      property.items = { type: 'string' };
+      if (field.options) {
+        property.items.enum = field.options.map(opt => opt.value);
+      }
+      break;
+    default:
+      property.type = 'string';
+  }
+
+  // Add validation rules
+  if (field.validation && field.validation.rules) {
+    // This would need to be expanded based on your validation rule structure
+    // For now, we'll add basic validation
+  }
+
+  if (field.defaultValue !== undefined) {
+    property.default = field.defaultValue;
+  }
+
+  return property;
+}
+
+// Helper function to validate form data using AJV
+function validateFormData(formSchema, formData) {
+  try {
+    const schema = generateRequestSchemaFromForm(formSchema);
+    const validate = ajv.compile(schema);
+    const isValid = validate(formData);
+    
+    const errors = [];
+    if (!isValid && validate.errors) {
+      for (const error of validate.errors) {
+        const fieldPath = error.instancePath ? error.instancePath.slice(1) : '';
+        const field = fieldPath || error.params?.missingProperty || 'root';
+        
+        errors.push({
+          field,
+          code: error.keyword,
+          message: getErrorMessage(error, formSchema, field),
+          value: error.data
+        });
+      }
+    }
+
+    return {
+      valid: isValid,
+      errors,
+      timestamp: new Date().toISOString(),
+      message: isValid ? 'Validation successful' : 'Validation failed'
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      errors: [{
+        field: 'root',
+        code: 'schema_error',
+        message: `Schema validation error: ${error.message}`,
+        value: formData
+      }],
+      timestamp: new Date().toISOString(),
+      message: 'Schema validation error'
+    };
+  }
+}
+
+// Helper function to get user-friendly error messages
+function getErrorMessage(error, formSchema, fieldName) {
+  const field = formSchema.fields.find(f => f.name === fieldName);
+  const fieldLabel = field?.label || fieldName;
+  
+  switch (error.keyword) {
+    case 'required':
+      return `${fieldLabel} is required`;
+    case 'type':
+      return `${fieldLabel} must be of type ${error.schema}`;
+    case 'format':
+      return `${fieldLabel} must be a valid ${error.schema}`;
+    case 'minLength':
+      return `${fieldLabel} must be at least ${error.schema} characters long`;
+    case 'maxLength':
+      return `${fieldLabel} must not exceed ${error.schema} characters`;
+    case 'minimum':
+      return `${fieldLabel} must be at least ${error.schema}`;
+    case 'maximum':
+      return `${fieldLabel} must not exceed ${error.schema}`;
+    case 'pattern':
+      return `${fieldLabel} format is invalid`;
+    case 'enum':
+      return `${fieldLabel} must be one of: ${error.schema.join(', ')}`;
+    default:
+      return error.message || `${fieldLabel} is invalid`;
+  }
 }
 
 // Health check endpoint

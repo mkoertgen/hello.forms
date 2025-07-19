@@ -150,12 +150,92 @@ export type FormFieldType =
   | 'section_header'
   | 'divider';
 
+// OpenAPI-compatible validation schema
+export interface OpenAPIValidationSchema {
+  openapi: string;
+  info: {
+    title: string;
+    description?: string;
+    version: string;
+  };
+  paths: {
+    [path: string]: {
+      post: {
+        summary: string;
+        requestBody: {
+          required: boolean;
+          content: {
+            'application/json': {
+              schema: JSONSchema;
+            };
+          };
+        };
+        responses: {
+          [statusCode: string]: {
+            description: string;
+            content?: {
+              'application/json': {
+                schema: JSONSchema;
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+  components: {
+    schemas: {
+      [schemaName: string]: JSONSchema;
+    };
+  };
+}
+
+export interface JSONSchema {
+  type: 'object' | 'array' | 'string' | 'number' | 'integer' | 'boolean';
+  title?: string;
+  description?: string;
+  properties?: { [key: string]: JSONSchemaProperty };
+  required?: string[];
+  additionalProperties?: boolean;
+  items?: JSONSchemaProperty;
+  examples?: any[];
+}
+
+export interface JSONSchemaProperty {
+  type: 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object';
+  title?: string;
+  description?: string;
+  format?: string;
+  pattern?: string;
+  minLength?: number;
+  maxLength?: number;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: boolean;
+  exclusiveMaximum?: boolean;
+  multipleOf?: number;
+  enum?: any[];
+  const?: any;
+  default?: any;
+  examples?: any[];
+  items?: JSONSchemaProperty;
+  properties?: { [key: string]: JSONSchemaProperty };
+  required?: string[];
+  additionalProperties?: boolean;
+  // Custom extensions for form validation
+  'x-validation-message'?: string;
+  'x-field-type'?: FormFieldType;
+  'x-conditional'?: ConditionalLogic;
+}
+
 export interface ValidationRule {
   id: string;
   name: string;
   type: ValidationType;
   message: string;
   parameters?: { [key: string]: any };
+  // OpenAPI-compatible JSON Schema properties
+  jsonSchema?: Partial<JSONSchemaProperty>;
 }
 
 export type ValidationType = 
