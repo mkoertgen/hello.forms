@@ -3,7 +3,7 @@ import { defineConfig } from 'orval';
 export default defineConfig({
   formsApi: {
     input: {
-      target: 'http://localhost:3000/api-docs.json',
+      target: 'http://localhost:3000/api-json',
     },
     output: {
       mode: 'split',
