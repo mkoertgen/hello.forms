@@ -49,24 +49,24 @@ export class FormManagerComponent implements OnInit {
   error: string | null = null;
 
   // Empty state actions
-  retryAction: EmptyStateAction = {
+  readonly retryAction: EmptyStateAction = {
     label: 'Retry',
     icon: 'refresh',
     color: 'primary',
     raised: true
-  };
+  } as const;
 
-  createFirstFormAction: EmptyStateAction = {
+  readonly createFirstFormAction: EmptyStateAction = {
     label: 'Create First Form',
     icon: 'add',
     color: 'primary',
     raised: true
-  };
+  } as const;
 
-  clearSearchAction: EmptyStateAction = {
+  readonly clearSearchAction: EmptyStateAction = {
     label: 'Clear Search',
     icon: 'clear'
-  };
+  } as const;
 
   constructor(
     private formDesignerService: FormDesignerService,

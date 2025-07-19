@@ -9,6 +9,16 @@ import { MatChipsModule } from '@angular/material/chips';
 import { Observable } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 
+export interface TagSelectionEvent {
+  tag: string;
+  source: 'autocomplete' | 'manual';
+}
+
+export interface SearchChangeEvent {
+  searchTerm: string;
+  hasTagPrefix: boolean;
+}
+
 @Component({
   selector: 'app-search-bar',
   standalone: true,
@@ -29,12 +39,12 @@ export class SearchBarComponent implements OnInit {
   @Input() searchTerm: string = '';
   @Input() label: string = 'Search';
   @Input() placeholder: string = 'Type to search...';
-  @Input() availableTags: string[] = [];
+  @Input() availableTags: readonly string[] = [];
   @Output() searchChange = new EventEmitter<string>();
   @Output() tagSelected = new EventEmitter<string>();
 
-  searchControl = new FormControl('');
-  filteredTags: Observable<string[]> = new Observable();
+  readonly searchControl = new FormControl<string>('');
+  filteredTags: Observable<readonly string[]> = new Observable();
 
   ngOnInit(): void {
     this.searchControl.setValue(this.searchTerm);

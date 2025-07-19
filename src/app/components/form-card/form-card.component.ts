@@ -16,9 +16,14 @@ export interface FormCardData {
 }
 
 export interface FormCardAction {
-  type: 'edit' | 'preview' | 'export' | 'delete';
-  formId: string;
-  formData?: FormCardData;
+  readonly type: 'edit' | 'preview' | 'export' | 'delete';
+  readonly formId: string;
+  readonly formData?: FormCardData;
+}
+
+export interface TagClickEvent {
+  readonly tag: string;
+  readonly formId: string;
 }
 
 @Component({
@@ -36,11 +41,11 @@ export interface FormCardAction {
 })
 export class FormCardComponent {
   @Input() form!: FormCardData;
-  @Output() action = new EventEmitter<FormCardAction>();
-  @Output() tagClick = new EventEmitter<string>();
+  @Output() readonly action = new EventEmitter<FormCardAction>();
+  @Output() readonly tagClick = new EventEmitter<string>();
 
-  get formTags(): string[] {
-    return this.form.schema?.metadata?.tags || [];
+  get formTags(): readonly string[] {
+    return this.form.schema?.metadata?.tags ?? [];
   }
 
   get stepCount(): number {
@@ -74,10 +79,12 @@ export class FormCardComponent {
       type,
       formId: this.form.id,
       formData: type === 'export' ? this.form : undefined
-    });
+    } as const);
   }
 
   onTagClick(tag: string): void {
-    this.tagClick.emit(tag);
+    if (tag.trim()) {
+      this.tagClick.emit(tag);
+    }
   }
 }

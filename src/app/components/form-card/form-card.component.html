@@ -16,7 +16,7 @@
         <mat-chip 
           *ngFor="let tag of formTags" 
           (click)="onTagClick(tag)"
-          class="clickable-tag">
+          [class.clickable-tag]="true">
           {{ tag }}
         </mat-chip>
       </mat-chip-set>
