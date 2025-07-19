@@ -26,9 +26,11 @@
   <div class="content">
     <app-search-bar
       [searchTerm]="searchTerm"
+      [availableTags]="availableTags"
       label="Search forms"
       placeholder="Search by title, description, or tags..."
-      (searchChange)="onSearchChange($event)">
+      (searchChange)="onSearchChange($event)"
+      (tagSelected)="onTagSelected($event)">
     </app-search-bar>
 
     <app-loading-state
@@ -68,7 +70,8 @@
       <app-form-card
         *ngFor="let form of filteredForms"
         [form]="form"
-        (action)="onFormAction($event)">
+        (action)="onFormAction($event)"
+        (tagClick)="onTagClick($event)">
       </app-form-card>
     </div>
   </div>

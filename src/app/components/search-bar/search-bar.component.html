@@ -3,9 +3,21 @@
     <mat-label>{{ label }}</mat-label>
     <input 
       matInput 
-      [value]="searchTerm" 
+      [formControl]="searchControl"
       (input)="onSearchChange($event)"
-      [placeholder]="placeholder">
+      [placeholder]="placeholder"
+      [matAutocomplete]="auto">
     <mat-icon matSuffix>search</mat-icon>
+    
+    <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onTagSelected($event.option.value)">
+      <mat-option *ngFor="let tag of filteredTags | async" [value]="tag">
+        <mat-icon>local_offer</mat-icon>
+        <span class="tag-option">{{ tag }}</span>
+      </mat-option>
+    </mat-autocomplete>
   </mat-form-field>
+  
+  <div class="search-hints" *ngIf="availableTags.length > 0">
+    <small>Type "tag:" to search by tags</small>
+  </div>
 </div>

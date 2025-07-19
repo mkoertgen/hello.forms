@@ -13,7 +13,12 @@
     <!-- Tags -->
     <div class="form-tags" *ngIf="formTags.length > 0">
       <mat-chip-set>
-        <mat-chip *ngFor="let tag of formTags">{{ tag }}</mat-chip>
+        <mat-chip 
+          *ngFor="let tag of formTags" 
+          (click)="onTagClick(tag)"
+          class="clickable-tag">
+          {{ tag }}
+        </mat-chip>
       </mat-chip-set>
     </div>
     

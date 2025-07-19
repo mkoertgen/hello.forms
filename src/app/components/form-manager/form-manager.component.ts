@@ -44,6 +44,7 @@ export class FormManagerComponent implements OnInit {
   forms: FormListItem[] = [];
   filteredForms: FormListItem[] = [];
   searchTerm: string = '';
+  availableTags: string[] = [];
   loading = false;
   error: string | null = null;
 
@@ -86,6 +87,7 @@ export class FormManagerComponent implements OnInit {
       .subscribe({
         next: (forms: FormListItem[]) => {
           this.forms = forms;
+          this.updateAvailableTags();
           this.filterForms();
         },
         error: (err: any) => {
@@ -95,9 +97,28 @@ export class FormManagerComponent implements OnInit {
       });
   }
 
+  updateAvailableTags(): void {
+    const allTags = new Set<string>();
+    this.forms.forEach(form => {
+      if (form.schema?.metadata?.tags) {
+        form.schema.metadata.tags.forEach(tag => allTags.add(tag));
+      }
+    });
+    this.availableTags = Array.from(allTags).sort();
+  }
+
   onSearchChange(searchTerm: string): void {
     this.searchTerm = searchTerm;
     this.filterForms();
+  }
+
+  onTagSelected(tag: string): void {
+    this.searchTerm = `tag:${tag}`;
+    this.filterForms();
+  }
+
+  onTagClick(tag: string): void {
+    this.onTagSelected(tag);
   }
 
   onFormAction(action: FormCardAction): void {
@@ -127,22 +148,38 @@ export class FormManagerComponent implements OnInit {
       return;
     }
 
-    const searchLower = this.searchTerm.toLowerCase();
+    const searchTerm = this.searchTerm.toLowerCase();
+    
+    // Check if it's a tag-specific search
+    if (searchTerm.startsWith('tag:')) {
+      const tagSearch = searchTerm.replace('tag:', '').trim();
+      this.filteredForms = this.forms.filter(form => {
+        if (form.schema?.metadata?.tags) {
+          return form.schema.metadata.tags.some(tag => 
+            tag.toLowerCase().includes(tagSearch)
+          );
+        }
+        return false;
+      });
+      return;
+    }
+
+    // Regular search across all fields
     this.filteredForms = this.forms.filter(form => {
       // Search in title
-      if (form.title.toLowerCase().includes(searchLower)) {
+      if (form.title.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in description
-      if (form.description && form.description.toLowerCase().includes(searchLower)) {
+      if (form.description && form.description.toLowerCase().includes(searchTerm)) {
         return true;
       }
 
       // Search in tags
       if (form.schema?.metadata?.tags) {
         return form.schema.metadata.tags.some(tag => 
-          tag.toLowerCase().includes(searchLower)
+          tag.toLowerCase().includes(searchTerm)
         );
       }
 

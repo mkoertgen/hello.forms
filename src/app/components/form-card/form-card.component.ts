@@ -37,6 +37,7 @@ export interface FormCardAction {
 export class FormCardComponent {
   @Input() form!: FormCardData;
   @Output() action = new EventEmitter<FormCardAction>();
+  @Output() tagClick = new EventEmitter<string>();
 
   get formTags(): string[] {
     return this.form.schema?.metadata?.tags || [];
@@ -74,5 +75,9 @@ export class FormCardComponent {
       formId: this.form.id,
       formData: type === 'export' ? this.form : undefined
     });
+  }
+
+  onTagClick(tag: string): void {
+    this.tagClick.emit(tag);
   }
 }
