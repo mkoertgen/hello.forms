@@ -6,13 +6,13 @@
  * OpenAPI spec version: 1.0
  */
 import type { Meta } from './meta';
-import type { FormSchema } from './formSchema';
+import type { SqlTable } from './sqlTable';
 
-export interface Form {
+export interface SqlSchema {
   /** The unique identifier of the model */
   id: string;
   /** Metadata of the model */
   meta: Meta;
-  /** JSON Schema for the form */
-  schema: FormSchema;
+  /** The tables in the SQL schema */
+  tables: SqlTable[];
 }

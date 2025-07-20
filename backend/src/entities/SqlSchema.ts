@@ -4,8 +4,20 @@ import { Entity, Column } from 'typeorm';
 import { BaseModel, Meta } from './BaseModel';
 import { ValidateNested } from 'class-validator';
 
-@ApiSchema({ name: 'SqlColumn' })
-export class SqlSchemaColumn {
+/**
+ * Enum for SQL column types (string based)
+ */
+export enum SqlType {
+  STRING = 'string',
+  INTEGER = 'integer',
+  BOOLEAN = 'boolean',
+  DATE = 'date',
+  FLOAT = 'float',
+  JSON = 'json',
+}
+
+@ApiSchema()
+export class SqlColumn {
   @ApiProperty({
     required: true,
     description: 'The name of the column',
@@ -17,10 +29,12 @@ export class SqlSchemaColumn {
   @ApiProperty({
     required: true,
     description: 'The data type of the column',
-    example: 'string',
+    enum: SqlType,
+    enumName: 'SqlType',
+    example: SqlType.STRING,
   })
-  @Column()
-  type: string;
+  @Column({ type: 'enum', enum: SqlType })
+  type: SqlType;
 
   @ApiProperty({
     required: false,
@@ -71,8 +85,8 @@ export class SqlSchemaColumn {
   foreignKey?: string;
 }
 
-@ApiSchema({ name: 'SqlRelation' })
-export class SqlSchemaRelationship {
+@ApiSchema()
+export class SqlRelation {
   @ApiProperty({
     required: true,
     description: 'The foreign key reference',
@@ -105,8 +119,8 @@ export class SqlSchemaRelationship {
   type: string;
 }
 
-@ApiSchema({ name: 'SqlTable' })
-export class SqlSchemaTable {
+@ApiSchema()
+export class SqlTable {
   @ApiProperty({
     required: true,
     description: 'The name of the table',
@@ -118,6 +132,8 @@ export class SqlSchemaTable {
   @ApiProperty({
     required: true,
     description: 'The columns of the table',
+    isArray: true,
+    type: SqlColumn,
     example: [
       {
         name: 'id',
@@ -128,8 +144,8 @@ export class SqlSchemaTable {
     ],
   })
   @ValidateNested({ each: true })
-  @Column((type) => SqlSchemaColumn)
-  columns: SqlSchemaColumn[];
+  @Column((type) => SqlColumn)
+  columns: SqlColumn[];
 
   @ApiProperty({
     required: false,
@@ -144,19 +160,21 @@ export class SqlSchemaTable {
     ],
   })
   @ValidateNested({ each: true })
-  @Column((type) => SqlSchemaRelationship)
-  relationships?: SqlSchemaRelationship[];
+  @Column((type) => SqlRelation)
+  relationships?: SqlRelation[];
 }
 
-@ApiSchema({ name: 'SqlSchema' })
+@ApiSchema()
 @Entity('sql_schema')
 export class SqlSchema extends BaseModel {
   @ApiProperty({
     required: true,
     description: 'The tables in the SQL schema',
+    isArray: true,
+    type: SqlTable,
   })
-  @Column((type) => SqlSchemaTable)
-  tables: SqlSchemaTable[];
+  @Column((type) => SqlTable)
+  tables: SqlTable[];
 
   merge(dto: Partial<SqlSchema>) {
     super.merge(dto);
