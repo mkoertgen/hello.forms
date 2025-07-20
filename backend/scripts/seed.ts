@@ -1,10 +1,9 @@
-import { DataSource } from 'typeorm';
-import dbConfig from '../src/ormconfig';
 import { Form } from '../src/entities/Form';
 import { SqlSchema } from '../src/entities/SqlSchema';
+import { getDataSource } from '../src/ormconfig';
 
 // Use the default (MongoDB) config
-const dataSource = new DataSource(dbConfig);
+const dataSource = getDataSource();
 
 async function seed() {
   await dataSource.initialize();
@@ -14,12 +13,12 @@ async function seed() {
   await formRepo.bulkWrite([
     {
       updateOne: {
-        filter: { id: 'user-xy' },
+        filter: { 'meta.name': 'user-xy' },
         update: {
           $set: {
-            id: 'user-xy',
-            version: '0.0.1',
             meta: {
+              name: 'user-xy',
+              version: '0.0.1',
               title: 'User XY',
               description: 'User Template',
               author: 'User',
@@ -60,12 +59,12 @@ async function seed() {
     },
     {
       updateOne: {
-        filter: { id: 'product-ab' },
+        filter: { 'meta.name': 'product-ab' },
         update: {
           $set: {
-            id: 'product-ab',
-            version: '0.0.1',
             meta: {
+              name: 'product-ab',
+              version: '0.0.1',
               title: 'Product AB',
               description: 'Product Template',
               author: 'User',
@@ -95,12 +94,20 @@ async function seed() {
   await schemaRepo.bulkWrite([
     {
       updateOne: {
-        filter: { id: 'sample-schema' },
+        filter: { 'meta.name': 'sample-schema' },
         update: {
           $set: {
-            id: 'sample-schema',
-            name: 'Sample E-commerce Schema',
-            createdAt: '2025-07-19T12:49:06.608Z',
+            meta: {
+              name: 'sample-schema',
+              version: '0.0.1',
+              title: 'Sample Schema',
+              description: 'Sample E-commerce Schema',
+              author: 'User',
+              createdAt: '2025-07-19T12:49:06.608Z',
+              updatedAt: new Date('2025-07-19T12:49:06.608Z'),
+              tags: ['sample'],
+            },
+
             tables: [
               {
                 columns: [
