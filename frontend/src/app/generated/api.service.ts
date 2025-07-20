@@ -41,19 +41,6 @@ type HttpClientOptions = {
 @Injectable({ providedIn: 'root' })
 export class FormsAPIService {
   constructor(private http: HttpClient) {}
-  appControllerGetHello<TData = void>(
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
-  ): Observable<TData>;
-  appControllerGetHello<TData = void>(
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }
-  ): Observable<AngularHttpResponse<TData>>;
-  appControllerGetHello<TData = void>(
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }
-  ): Observable<HttpEvent<TData>>;
-  appControllerGetHello<TData = void>(options?: HttpClientOptions): Observable<TData> {
-    return this.http.get<TData>(`/`, options);
-  }
-
   formsControllerFindAll<TData = Form[]>(
     options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
   ): Observable<TData>;
@@ -81,25 +68,6 @@ export class FormsAPIService {
   ): Observable<HttpEvent<TData>>;
   formsControllerCreate<TData = Form>(form: Form, options?: HttpClientOptions): Observable<TData> {
     return this.http.post<TData>(`/forms`, form, options);
-  }
-
-  formsControllerFindByTags<TData = Form[]>(
-    tags: string[],
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
-  ): Observable<TData>;
-  formsControllerFindByTags<TData = Form[]>(
-    tags: string[],
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }
-  ): Observable<AngularHttpResponse<TData>>;
-  formsControllerFindByTags<TData = Form[]>(
-    tags: string[],
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }
-  ): Observable<HttpEvent<TData>>;
-  formsControllerFindByTags<TData = Form[]>(
-    tags: string[],
-    options?: HttpClientOptions
-  ): Observable<TData> {
-    return this.http.get<TData>(`/forms/tags/${tags}`, options);
   }
 
   formsControllerFindOne<TData = Form>(
@@ -251,10 +219,8 @@ export class FormsAPIService {
   }
 }
 
-export type AppControllerGetHelloClientResult = NonNullable<void>;
 export type FormsControllerFindAllClientResult = NonNullable<Form[]>;
 export type FormsControllerCreateClientResult = NonNullable<Form>;
-export type FormsControllerFindByTagsClientResult = NonNullable<Form[]>;
 export type FormsControllerFindOneClientResult = NonNullable<Form>;
 export type FormsControllerPatchClientResult = NonNullable<Form>;
 export type FormsControllerRemoveClientResult = NonNullable<void>;

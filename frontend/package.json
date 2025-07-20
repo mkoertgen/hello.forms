@@ -44,6 +44,8 @@
     "@orval/angular": "^7.10.0",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^18.7.0",
+    "clone-deep": "^4.0.1",
+    "flat": "^6.0.1",
     "is-number": "^7.0.0",
     "jasmine-core": "~5.1.0",
     "karma": "~6.4.0",

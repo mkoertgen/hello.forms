@@ -5,14 +5,14 @@
  * API for dynamic forms
  * OpenAPI spec version: 1.0
  */
-import type { SqlType } from './sqlType';
+import type { SqlColumnType } from './sqlColumnType';
 import type { SqlColumnDefaultValue } from './sqlColumnDefaultValue';
 
 export interface SqlColumn {
   /** The name of the column */
   name: string;
   /** The data type of the column */
-  type: SqlType;
+  type: SqlColumnType;
   /** The maximum length of the column */
   maxLength?: number;
   /** The minimum length of the column */
@@ -25,4 +25,6 @@ export interface SqlColumn {
   defaultValue?: SqlColumnDefaultValue;
   /** The foreign key reference */
   foreignKey?: string;
+  /** Additional constraints for the column */
+  constraints?: string[];
 }

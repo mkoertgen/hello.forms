@@ -21,11 +21,11 @@ export class FormsController {
     return models.map((m) => plainToInstance(Form, m));
   }
 
-  @Get('tags/:tags')
-  @ApiResponse({ status: 200, description: 'Get forms by tags', type: [Form] })
-  async findByTags(@Param('tags') tags: string[]): Promise<Form[]> {
-    return await Form.findByTags(tags);
-  }
+  // @Get('tags/:tags')
+  // @ApiResponse({ status: 200, description: 'Get forms by tags', type: [Form] })
+  // async findByTags(@Param('tags') tags: string[]): Promise<Form[]> {
+  //   return await Form.findByTags(tags);
+  // }
 
   @Get(':id')
   @ApiResponse({ status: 200, description: 'Get form by id', type: Form })

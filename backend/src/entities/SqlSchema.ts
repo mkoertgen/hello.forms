@@ -7,7 +7,7 @@ import { ValidateNested } from 'class-validator';
 /**
  * Enum for SQL column types (string based)
  */
-export enum SqlType {
+export enum SqlColumnType {
   STRING = 'string',
   INTEGER = 'integer',
   BOOLEAN = 'boolean',
@@ -29,12 +29,12 @@ export class SqlColumn {
   @ApiProperty({
     required: true,
     description: 'The data type of the column',
-    enum: SqlType,
-    enumName: 'SqlType',
-    example: SqlType.STRING,
+    enum: SqlColumnType,
+    enumName: 'SqlColumnType',
+    example: SqlColumnType.STRING,
   })
-  @Column({ type: 'enum', enum: SqlType })
-  type: SqlType;
+  @Column({ type: 'enum', enum: SqlColumnType })
+  type: SqlColumnType;
 
   @ApiProperty({
     required: false,
@@ -83,6 +83,18 @@ export class SqlColumn {
   })
   @Column({ nullable: true })
   foreignKey?: string;
+
+  // constraints
+  @ApiProperty({
+    required: false,
+    description: 'Additional constraints for the column',
+    isArray: true,
+    type: String,
+    example: ['UNIQUE', 'CHECK (age > 0)'],
+    uniqueItems: true,
+  })
+  @Column({ nullable: true })
+  constraints?: string[];
 }
 
 @ApiSchema()
@@ -116,7 +128,7 @@ export class SqlRelation {
     example: 'many-to-many',
   })
   @Column()
-  type: string;
+  type: string | 'one-to-one' | 'one-to-many' | 'many-to-many';
 }
 
 @ApiSchema()

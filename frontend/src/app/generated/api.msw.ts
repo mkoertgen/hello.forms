@@ -9,7 +9,7 @@ import { faker } from '@faker-js/faker';
 
 import { HttpResponse, delay, http } from 'msw';
 
-import { SqlType } from './models';
+import { FormFieldType, SqlColumnType } from './models';
 import type { Form, SqlSchema } from './models';
 
 export const getFormsControllerFindAllResponseMock = (): Form[] =>
@@ -38,7 +38,46 @@ export const getFormsControllerFindAllResponseMock = (): Form[] =>
         version: faker.helpers.arrayElement([{}, undefined]),
       },
     },
-    schema: {},
+    fields: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+      () => ({
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        label: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        type: faker.helpers.arrayElement(Object.values(FormFieldType)),
+        sqlColumn: faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          undefined,
+        ]),
+        required: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
+        placeholder: faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          undefined,
+        ]),
+        helpText: faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          undefined,
+        ]),
+        defaultValue: faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          undefined,
+        ]),
+      })
+    ),
+    steps: faker.helpers.arrayElement([
+      Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+        id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        order: faker.number.float({ min: undefined, max: undefined, fractionDigits: 2 }),
+        title: faker.string.alpha({ length: { min: 10, max: 20 } }),
+        description: faker.helpers.arrayElement([
+          faker.string.alpha({ length: { min: 10, max: 20 } }),
+          undefined,
+        ]),
+        fields: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+          () => faker.string.alpha({ length: { min: 10, max: 20 } })
+        ),
+      })),
+      undefined,
+    ]),
   }));
 
 export const getFormsControllerCreateResponseMock = (
@@ -68,38 +107,48 @@ export const getFormsControllerCreateResponseMock = (
       version: faker.helpers.arrayElement([{}, undefined]),
     },
   },
-  schema: {},
+  fields: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+    () => ({
+      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      label: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      type: faker.helpers.arrayElement(Object.values(FormFieldType)),
+      sqlColumn: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      required: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
+      placeholder: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      helpText: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      defaultValue: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+    })
+  ),
+  steps: faker.helpers.arrayElement([
+    Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      order: faker.number.float({ min: undefined, max: undefined, fractionDigits: 2 }),
+      title: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      description: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      fields: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+        () => faker.string.alpha({ length: { min: 10, max: 20 } })
+      ),
+    })),
+    undefined,
+  ]),
   ...overrideResponse,
 });
-
-export const getFormsControllerFindByTagsResponseMock = (): Form[] =>
-  Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
-    id: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    meta: {
-      ...{
-        name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        title: faker.string.alpha({ length: { min: 10, max: 20 } }),
-        description: faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          undefined,
-        ]),
-        author: faker.helpers.arrayElement([
-          faker.string.alpha({ length: { min: 10, max: 20 } }),
-          undefined,
-        ]),
-        createdAt: `${faker.date.past().toISOString().split('.')[0]}Z`,
-        updatedAt: faker.helpers.arrayElement([
-          `${faker.date.past().toISOString().split('.')[0]}Z`,
-          undefined,
-        ]),
-        tags: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
-          () => faker.string.alpha({ length: { min: 10, max: 20 } })
-        ),
-        version: faker.helpers.arrayElement([{}, undefined]),
-      },
-    },
-    schema: {},
-  }));
 
 export const getFormsControllerFindOneResponseMock = (
   overrideResponse: Partial<Form> = {}
@@ -128,7 +177,46 @@ export const getFormsControllerFindOneResponseMock = (
       version: faker.helpers.arrayElement([{}, undefined]),
     },
   },
-  schema: {},
+  fields: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+    () => ({
+      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      label: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      type: faker.helpers.arrayElement(Object.values(FormFieldType)),
+      sqlColumn: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      required: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
+      placeholder: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      helpText: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      defaultValue: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+    })
+  ),
+  steps: faker.helpers.arrayElement([
+    Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      order: faker.number.float({ min: undefined, max: undefined, fractionDigits: 2 }),
+      title: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      description: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      fields: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+        () => faker.string.alpha({ length: { min: 10, max: 20 } })
+      ),
+    })),
+    undefined,
+  ]),
   ...overrideResponse,
 });
 
@@ -159,7 +247,46 @@ export const getFormsControllerPatchResponseMock = (
       version: faker.helpers.arrayElement([{}, undefined]),
     },
   },
-  schema: {},
+  fields: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+    () => ({
+      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      label: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      type: faker.helpers.arrayElement(Object.values(FormFieldType)),
+      sqlColumn: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      required: faker.helpers.arrayElement([faker.datatype.boolean(), undefined]),
+      placeholder: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      helpText: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      defaultValue: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+    })
+  ),
+  steps: faker.helpers.arrayElement([
+    Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+      id: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      order: faker.number.float({ min: undefined, max: undefined, fractionDigits: 2 }),
+      title: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      description: faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        undefined,
+      ]),
+      fields: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+        () => faker.string.alpha({ length: { min: 10, max: 20 } })
+      ),
+    })),
+    undefined,
+  ]),
   ...overrideResponse,
 });
 
@@ -195,7 +322,7 @@ export const getSqlSchemaControllerFindAllResponseMock = (): SqlSchema[] =>
         columns: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
           () => ({
             name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-            type: faker.helpers.arrayElement(Object.values(SqlType)),
+            type: faker.helpers.arrayElement(Object.values(SqlColumnType)),
             maxLength: faker.helpers.arrayElement([
               faker.number.float({ min: undefined, max: undefined, fractionDigits: 2 }),
               undefined,
@@ -209,6 +336,12 @@ export const getSqlSchemaControllerFindAllResponseMock = (): SqlSchema[] =>
             defaultValue: faker.helpers.arrayElement([{}, undefined]),
             foreignKey: faker.helpers.arrayElement([
               faker.string.alpha({ length: { min: 10, max: 20 } }),
+              undefined,
+            ]),
+            constraints: faker.helpers.arrayElement([
+              Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+                () => faker.string.alpha({ length: { min: 10, max: 20 } })
+              ),
               undefined,
             ]),
           })
@@ -256,7 +389,7 @@ export const getSqlSchemaControllerCreateResponseMock = (
       columns: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
         () => ({
           name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          type: faker.helpers.arrayElement(Object.values(SqlType)),
+          type: faker.helpers.arrayElement(Object.values(SqlColumnType)),
           maxLength: faker.helpers.arrayElement([
             faker.number.float({ min: undefined, max: undefined, fractionDigits: 2 }),
             undefined,
@@ -270,6 +403,12 @@ export const getSqlSchemaControllerCreateResponseMock = (
           defaultValue: faker.helpers.arrayElement([{}, undefined]),
           foreignKey: faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
+            undefined,
+          ]),
+          constraints: faker.helpers.arrayElement([
+            Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() =>
+              faker.string.alpha({ length: { min: 10, max: 20 } })
+            ),
             undefined,
           ]),
         })
@@ -318,7 +457,7 @@ export const getSqlSchemaControllerFindOneResponseMock = (
       columns: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
         () => ({
           name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          type: faker.helpers.arrayElement(Object.values(SqlType)),
+          type: faker.helpers.arrayElement(Object.values(SqlColumnType)),
           maxLength: faker.helpers.arrayElement([
             faker.number.float({ min: undefined, max: undefined, fractionDigits: 2 }),
             undefined,
@@ -332,6 +471,12 @@ export const getSqlSchemaControllerFindOneResponseMock = (
           defaultValue: faker.helpers.arrayElement([{}, undefined]),
           foreignKey: faker.helpers.arrayElement([
             faker.string.alpha({ length: { min: 10, max: 20 } }),
+            undefined,
+          ]),
+          constraints: faker.helpers.arrayElement([
+            Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() =>
+              faker.string.alpha({ length: { min: 10, max: 20 } })
+            ),
             undefined,
           ]),
         })
@@ -380,7 +525,7 @@ export const getSqlSchemaControllerPatchResponseMock = (
       columns: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
         () => ({
           name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-          type: faker.helpers.arrayElement(Object.values(SqlType)),
+          type: faker.helpers.arrayElement(Object.values(SqlColumnType)),
           maxLength: faker.helpers.arrayElement([
             faker.number.float({ min: undefined, max: undefined, fractionDigits: 2 }),
             undefined,
@@ -396,6 +541,12 @@ export const getSqlSchemaControllerPatchResponseMock = (
             faker.string.alpha({ length: { min: 10, max: 20 } }),
             undefined,
           ]),
+          constraints: faker.helpers.arrayElement([
+            Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() =>
+              faker.string.alpha({ length: { min: 10, max: 20 } })
+            ),
+            undefined,
+          ]),
         })
       ),
       relationships: faker.helpers.arrayElement([
@@ -408,20 +559,6 @@ export const getSqlSchemaControllerPatchResponseMock = (
   ),
   ...overrideResponse,
 });
-
-export const getAppControllerGetHelloMockHandler = (
-  overrideResponse?:
-    | void
-    | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<void> | void)
-) => {
-  return http.get('*/', async (info) => {
-    await delay(1000);
-    if (typeof overrideResponse === 'function') {
-      await overrideResponse(info);
-    }
-    return new HttpResponse(null, { status: 200 });
-  });
-};
 
 export const getFormsControllerFindAllMockHandler = (
   overrideResponse?:
@@ -461,27 +598,6 @@ export const getFormsControllerCreateMockHandler = (
           : getFormsControllerCreateResponseMock()
       ),
       { status: 201, headers: { 'Content-Type': 'application/json' } }
-    );
-  });
-};
-
-export const getFormsControllerFindByTagsMockHandler = (
-  overrideResponse?:
-    | Form[]
-    | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Form[]> | Form[])
-) => {
-  return http.get('*/forms/tags/:tags', async (info) => {
-    await delay(1000);
-
-    return new HttpResponse(
-      JSON.stringify(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getFormsControllerFindByTagsResponseMock()
-      ),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   });
 };
@@ -640,10 +756,8 @@ export const getSqlSchemaControllerRemoveMockHandler = (
   });
 };
 export const getFormsAPIMock = () => [
-  getAppControllerGetHelloMockHandler(),
   getFormsControllerFindAllMockHandler(),
   getFormsControllerCreateMockHandler(),
-  getFormsControllerFindByTagsMockHandler(),
   getFormsControllerFindOneMockHandler(),
   getFormsControllerPatchMockHandler(),
   getFormsControllerRemoveMockHandler(),

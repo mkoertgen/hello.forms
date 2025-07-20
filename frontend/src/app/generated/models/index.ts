@@ -7,11 +7,15 @@
  */
 
 export * from './form';
+export * from './formField';
+export * from './formFieldType';
 export * from './formSchema';
+export * from './formStep';
 export * from './meta';
 export * from './metaVersion';
 export * from './sqlColumn';
 export * from './sqlColumnDefaultValue';
+export * from './sqlColumnType';
 export * from './sqlSchema';
 export * from './sqlTable';
 export * from './sqlType';

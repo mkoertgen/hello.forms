@@ -6,13 +6,16 @@
  * OpenAPI spec version: 1.0
  */
 import type { Meta } from './meta';
-import type { FormSchema } from './formSchema';
+import type { FormField } from './formField';
+import type { FormStep } from './formStep';
 
 export interface Form {
   /** The unique identifier of the model */
   id: string;
   /** Metadata of the model */
   meta: Meta;
-  /** JSON Schema for the form */
-  schema: FormSchema;
+  /** The fields of the form */
+  fields: FormField[];
+  /** The steps of the form */
+  steps?: FormStep[];
 }
