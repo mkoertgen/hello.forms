@@ -5,7 +5,6 @@
  * API for dynamic forms
  * OpenAPI spec version: 1.0
  */
-import type { MetaVersion } from './metaVersion';
 
 export interface Meta {
   /** The technical name the model */
@@ -23,5 +22,5 @@ export interface Meta {
   /** The tags associated with the model */
   tags: string[];
   /** Semantic version of the model */
-  version?: MetaVersion;
+  version?: string;
 }

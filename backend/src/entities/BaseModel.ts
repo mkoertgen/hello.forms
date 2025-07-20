@@ -9,13 +9,7 @@ import {
   IsSemVer,
   ValidateNested,
 } from 'class-validator';
-import {
-  BaseEntity,
-  Column,
-  MongoRepository,
-  ObjectIdColumn,
-  Repository,
-} from 'typeorm';
+import { BaseEntity, Column, MongoRepository, ObjectIdColumn } from 'typeorm';
 import { UUID } from 'mongodb';
 import * as semver from 'semver';
 
@@ -65,6 +59,8 @@ export class Meta {
 
   @ApiProperty({
     required: true,
+    type: String,
+    format: 'date-time',
     description: 'The creation date of the model',
     example: '2022-01-01T00:00:00Z',
   })
@@ -74,6 +70,8 @@ export class Meta {
 
   @ApiProperty({
     required: false,
+    type: String,
+    format: 'date-time',
     description: 'The last update date of the model',
     example: '2022-01-02T00:00:00Z',
   })
@@ -107,6 +105,8 @@ export class Meta {
 
   @ApiProperty({
     required: false,
+    type: String,
+    format: 'semver',
     example: '0.0.1',
     description: 'Semantic version of the model',
     default: '0.0.1',

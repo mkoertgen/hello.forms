@@ -6,7 +6,7 @@ export default defineConfig({
       target: 'http://localhost:3000/api-json',
     },
     output: {
-      mode: 'split',
+      mode: 'tags-split',
       target: 'src/app/generated/api.ts',
       schemas: 'src/app/generated/models',
       client: 'angular',

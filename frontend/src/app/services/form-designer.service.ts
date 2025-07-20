@@ -2,41 +2,37 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
-import { 
-  FormSchema, 
-  FormField, 
-  FormStep, 
-  ValidationRule, 
-  FormDesignerState,
+import {
+  Form,
+  FormField,
+  FormStep,
   DragDropField,
   FormFieldType,
-  SQLColumn
+  SqlColumn,
 } from '../models/form-schema.models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class FormDesignerService {
   private apiUrl = 'http://localhost:3000/api';
-  
+
   private initialState: FormDesignerState = {
-    schema: {
+    meta: {
+      name: this.generateTitleSlug('New Form'),
       title: 'New Form',
       description: '',
       version: '1.0.0',
-      metadata: {
-        id: this.generateTitleSlug('New Form'),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        author: this.getCurrentUser(),
-        tags: []
-      },
-      fields: [],
-      validationRules: this.getDefaultValidationRules()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      author: this.getCurrentUser(),
+      tags: [],
     },
+    fields: [],
+    steps: [],
     dragDropFields: this.getDefaultFieldTypes(),
     sqlTables: [],
-    previewMode: false
+    previewMode: false,
   };
 
   private stateSubject = new BehaviorSubject<FormDesignerState>(this.initialState);
@@ -51,7 +47,7 @@ export class FormDesignerService {
   updateState(updates: Partial<FormDesignerState>): void {
     const currentState = this.stateSubject.value;
     const newState = { ...currentState, ...updates };
-    
+
     if (updates.schema) {
       newState.schema.metadata.updatedAt = new Date();
       // Update ID if title changed
@@ -59,7 +55,7 @@ export class FormDesignerService {
         newState.schema.metadata.id = this.generateTitleSlug(updates.schema.title);
       }
     }
-    
+
     this.stateSubject.next(newState);
   }
 
@@ -72,26 +68,26 @@ export class FormDesignerService {
         createdAt: new Date(),
         updatedAt: new Date(),
         author: this.getCurrentUser(),
-        tags: []
+        tags: [],
       };
     }
-    
+
     const titleSlug = this.generateTitleSlug(schema.title);
     const isUpdate = !!schema.metadata.originalId || this.isExistingForm(schema);
-    
+
     schema.metadata.updatedAt = new Date();
-    
+
     if (isUpdate) {
       // Update existing form - use originalId if available, otherwise current id
       const formId = schema.metadata.originalId || schema.metadata.id;
-      
+
       if (!formId) {
         console.error('Cannot update form: no valid ID found');
         throw new Error('Cannot update form: no valid ID found');
       }
-      
+
       console.log(`Updating form with original ID: ${formId}, title slug: ${titleSlug}`);
-      
+
       // The server will handle ID changes if the title changed
       return this.http.put<FormSchema>(`${this.apiUrl}/forms/${formId}`, schema).pipe(
         map((savedSchema: FormSchema) => {
@@ -106,7 +102,7 @@ export class FormDesignerService {
       if (!schema.metadata.createdAt) {
         schema.metadata.createdAt = new Date();
       }
-      
+
       console.log(`Creating new form with ID: ${titleSlug}`);
       return this.http.post<FormSchema>(`${this.apiUrl}/forms`, schema).pipe(
         map((savedSchema: FormSchema) => {
@@ -169,16 +165,16 @@ export class FormDesignerService {
         createdAt: new Date(),
         updatedAt: new Date(),
         author: this.getCurrentUser(),
-        tags: []
+        tags: [],
       },
       fields: [],
-      validationRules: this.getDefaultValidationRules()
+      validationRules: this.getDefaultValidationRules(),
     };
 
-    this.updateState({ 
+    this.updateState({
       schema: newSchema,
       selectedField: undefined,
-      previewMode: false
+      previewMode: false,
     });
   }
 
@@ -190,7 +186,7 @@ export class FormDesignerService {
       label: field.label || 'New Field',
       type: field.type || 'text',
       required: field.required || false,
-      ...field
+      ...field,
     };
   }
 
@@ -206,27 +202,27 @@ export class FormDesignerService {
     }
 
     this.updateState({
-      schema: { ...currentState.schema, fields }
+      schema: { ...currentState.schema, fields },
     });
   }
 
   updateField(fieldId: string, updates: Partial<FormField>): void {
     const currentState = this.getState();
-    const fields = currentState.schema.fields.map(field =>
+    const fields = currentState.schema.fields.map((field) =>
       field.id === fieldId ? { ...field, ...updates } : field
     );
 
     this.updateState({
-      schema: { ...currentState.schema, fields }
+      schema: { ...currentState.schema, fields },
     });
   }
 
   removeField(fieldId: string): void {
     const currentState = this.getState();
-    const fields = currentState.schema.fields.filter(field => field.id !== fieldId);
+    const fields = currentState.schema.fields.filter((field) => field.id !== fieldId);
 
     this.updateState({
-      schema: { ...currentState.schema, fields }
+      schema: { ...currentState.schema, fields },
     });
   }
 
@@ -237,13 +233,13 @@ export class FormDesignerService {
     fields.splice(toIndex, 0, movedField);
 
     this.updateState({
-      schema: { ...currentState.schema, fields }
+      schema: { ...currentState.schema, fields },
     });
   }
 
   selectField(fieldId: string): void {
     const currentState = this.getState();
-    const selectedField = currentState.schema.fields.find(f => f.id === fieldId);
+    const selectedField = currentState.schema.fields.find((f) => f.id === fieldId);
     this.updateState({ selectedField });
   }
 
@@ -255,57 +251,61 @@ export class FormDesignerService {
       title: step.title || 'New Step',
       order: step.order || (currentState.schema.steps?.length || 0) + 1,
       fields: step.fields || [],
-      ...step
+      ...step,
     };
 
     const steps = [...(currentState.schema.steps || []), newStep];
     this.updateState({
-      schema: { ...currentState.schema, steps }
+      schema: { ...currentState.schema, steps },
     });
   }
 
   updateStep(stepId: string, updates: Partial<FormStep>): void {
     const currentState = this.getState();
-    const steps = (currentState.schema.steps || []).map(step =>
+    const steps = (currentState.schema.steps || []).map((step) =>
       step.id === stepId ? { ...step, ...updates } : step
     );
 
     this.updateState({
-      schema: { ...currentState.schema, steps }
+      schema: { ...currentState.schema, steps },
     });
   }
 
   removeStep(stepId: string): void {
     const currentState = this.getState();
-    const steps = (currentState.schema.steps || []).filter(step => step.id !== stepId);
+    const steps = (currentState.schema.steps || []).filter((step) => step.id !== stepId);
 
     this.updateState({
-      schema: { ...currentState.schema, steps }
+      schema: { ...currentState.schema, steps },
     });
   }
 
   moveStep(previousIndex: number, currentIndex: number): void {
     const currentState = this.getState();
     const steps = [...(currentState.schema.steps || [])];
-    
+
     // Validate indices
-    if (previousIndex < 0 || previousIndex >= steps.length || 
-        currentIndex < 0 || currentIndex >= steps.length) {
+    if (
+      previousIndex < 0 ||
+      previousIndex >= steps.length ||
+      currentIndex < 0 ||
+      currentIndex >= steps.length
+    ) {
       console.warn('Invalid step indices for reordering');
       return;
     }
-    
+
     // Move step from previousIndex to currentIndex
     const [movedStep] = steps.splice(previousIndex, 1);
     steps.splice(currentIndex, 0, movedStep);
-    
+
     // Update order values to maintain consistency
     steps.forEach((step, index) => {
       step.order = index + 1;
     });
 
     this.updateState({
-      schema: { ...currentState.schema, steps }
+      schema: { ...currentState.schema, steps },
     });
   }
 
@@ -313,28 +313,28 @@ export class FormDesignerService {
   addFieldToStep(field: FormField, stepIndex: number, insertAt?: number): void {
     const currentState = this.getState();
     const steps = [...(currentState.schema.steps || [])];
-    
+
     if (stepIndex >= 0 && stepIndex < steps.length) {
       const step = { ...steps[stepIndex] };
       const stepFields = [...step.fields];
-      
+
       if (insertAt !== undefined && insertAt >= 0) {
         stepFields.splice(insertAt, 0, field.id);
       } else {
         stepFields.push(field.id);
       }
-      
+
       step.fields = stepFields;
       steps[stepIndex] = step;
-      
+
       // Also add the field to the main fields array if it's not already there
       const fields = [...currentState.schema.fields];
-      if (!fields.find(f => f.id === field.id)) {
+      if (!fields.find((f) => f.id === field.id)) {
         fields.push(field);
       }
-      
+
       this.updateState({
-        schema: { ...currentState.schema, fields, steps }
+        schema: { ...currentState.schema, fields, steps },
       });
     }
   }
@@ -342,20 +342,20 @@ export class FormDesignerService {
   moveFieldInStep(stepIndex: number, fromIndex: number, toIndex: number): void {
     const currentState = this.getState();
     const steps = [...(currentState.schema.steps || [])];
-    
+
     if (stepIndex >= 0 && stepIndex < steps.length) {
       const step = { ...steps[stepIndex] };
       const stepFields = [...step.fields];
-      
+
       // Move the field ID within the step's fields array
       const [movedFieldId] = stepFields.splice(fromIndex, 1);
       stepFields.splice(toIndex, 0, movedFieldId);
-      
+
       step.fields = stepFields;
       steps[stepIndex] = step;
-      
+
       this.updateState({
-        schema: { ...currentState.schema, steps }
+        schema: { ...currentState.schema, steps },
       });
     }
   }
@@ -363,14 +363,14 @@ export class FormDesignerService {
   removeFieldFromStep(stepIndex: number, fieldId: string): void {
     const currentState = this.getState();
     const steps = [...(currentState.schema.steps || [])];
-    
+
     if (stepIndex >= 0 && stepIndex < steps.length) {
       const step = { ...steps[stepIndex] };
-      step.fields = step.fields.filter(id => id !== fieldId);
+      step.fields = step.fields.filter((id) => id !== fieldId);
       steps[stepIndex] = step;
-      
+
       this.updateState({
-        schema: { ...currentState.schema, steps }
+        schema: { ...currentState.schema, steps },
       });
     }
   }
@@ -383,12 +383,12 @@ export class FormDesignerService {
       name: rule.name || 'New Rule',
       type: rule.type || 'required',
       message: rule.message || 'Validation failed',
-      ...rule
+      ...rule,
     };
 
     const validationRules = [...currentState.schema.validationRules, newRule];
     this.updateState({
-      schema: { ...currentState.schema, validationRules }
+      schema: { ...currentState.schema, validationRules },
     });
   }
 
@@ -403,8 +403,8 @@ export class FormDesignerService {
       required: !column.nullable,
       placeholder: this.generatePlaceholder(column),
       validation: {
-        rules: this.generateValidationRules(column)
-      }
+        rules: this.generateValidationRules(column),
+      },
     };
   }
 
@@ -417,7 +417,7 @@ export class FormDesignerService {
     return columnName
       .replace(/_/g, ' ')
       .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
+      .replace(/^./, (str) => str.toUpperCase())
       .trim();
   }
 
@@ -469,15 +469,15 @@ export class FormDesignerService {
 
   private generateValidationRules(column: SQLColumn): string[] {
     const rules: string[] = [];
-    
+
     if (!column.nullable) {
       rules.push('required');
     }
-    
+
     if (column.maxLength) {
       rules.push(`max_length_${column.maxLength}`);
     }
-    
+
     return rules;
   }
 
@@ -486,8 +486,20 @@ export class FormDesignerService {
       { id: 'required', name: 'Required', type: 'required', message: 'This field is required' },
       { id: 'email', name: 'Email', type: 'email', message: 'Please enter a valid email address' },
       { id: 'numeric', name: 'Numeric', type: 'numeric', message: 'Please enter a valid number' },
-      { id: 'min_length_3', name: 'Min Length 3', type: 'min_length', message: 'Must be at least 3 characters', parameters: { min: 3 } },
-      { id: 'max_length_255', name: 'Max Length 255', type: 'max_length', message: 'Must be less than 255 characters', parameters: { max: 255 } }
+      {
+        id: 'min_length_3',
+        name: 'Min Length 3',
+        type: 'min_length',
+        message: 'Must be at least 3 characters',
+        parameters: { min: 3 },
+      },
+      {
+        id: 'max_length_255',
+        name: 'Max Length 255',
+        type: 'max_length',
+        message: 'Must be less than 255 characters',
+        parameters: { max: 255 },
+      },
     ];
   }
 
@@ -504,7 +516,7 @@ export class FormDesignerService {
       { id: 'datetime', type: 'datetime', label: 'Date Time', icon: 'schedule' },
       { id: 'file', type: 'file', label: 'File Upload', icon: 'attach_file' },
       { id: 'section_header', type: 'section_header', label: 'Section Header', icon: 'title' },
-      { id: 'divider', type: 'divider', label: 'Divider', icon: 'horizontal_rule' }
+      { id: 'divider', type: 'divider', label: 'Divider', icon: 'horizontal_rule' },
     ];
   }
 
@@ -513,9 +525,9 @@ export class FormDesignerService {
       .toLowerCase()
       .trim()
       .replace(/[^\w\s-]/g, '') // Remove special characters
-      .replace(/\s+/g, '-')     // Replace spaces with hyphens
-      .replace(/-+/g, '-')      // Replace multiple hyphens with single hyphen
-      .replace(/^-|-$/g, '');   // Remove leading/trailing hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
   }
 
   private getCurrentUser(): string {

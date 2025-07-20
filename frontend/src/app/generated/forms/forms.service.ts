@@ -18,7 +18,7 @@ import { Injectable } from '@angular/core';
 
 import { Observable } from 'rxjs';
 
-import type { Form, SqlSchema } from './models';
+import type { Form } from '.././models';
 
 type HttpClientOptions = {
   headers?:
@@ -39,7 +39,7 @@ type HttpClientOptions = {
 };
 
 @Injectable({ providedIn: 'root' })
-export class FormsAPIService {
+export class FormsService {
   constructor(private http: HttpClient) {}
   formsControllerFindAll<TData = Form[]>(
     options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
@@ -53,7 +53,6 @@ export class FormsAPIService {
   formsControllerFindAll<TData = Form[]>(options?: HttpClientOptions): Observable<TData> {
     return this.http.get<TData>(`/forms`, options);
   }
-
   formsControllerCreate<TData = Form>(
     form: Form,
     options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
@@ -69,7 +68,6 @@ export class FormsAPIService {
   formsControllerCreate<TData = Form>(form: Form, options?: HttpClientOptions): Observable<TData> {
     return this.http.post<TData>(`/forms`, form, options);
   }
-
   formsControllerFindOne<TData = Form>(
     id: string,
     options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
@@ -85,7 +83,6 @@ export class FormsAPIService {
   formsControllerFindOne<TData = Form>(id: string, options?: HttpClientOptions): Observable<TData> {
     return this.http.get<TData>(`/forms/${id}`, options);
   }
-
   formsControllerPatch<TData = Form>(
     id: string,
     form: Form,
@@ -108,7 +105,6 @@ export class FormsAPIService {
   ): Observable<TData> {
     return this.http.patch<TData>(`/forms/${id}`, form, options);
   }
-
   formsControllerRemove<TData = void>(
     id: string,
     options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
@@ -124,99 +120,6 @@ export class FormsAPIService {
   formsControllerRemove<TData = void>(id: string, options?: HttpClientOptions): Observable<TData> {
     return this.http.delete<TData>(`/forms/${id}`, options);
   }
-
-  sqlSchemaControllerFindAll<TData = SqlSchema[]>(
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
-  ): Observable<TData>;
-  sqlSchemaControllerFindAll<TData = SqlSchema[]>(
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }
-  ): Observable<AngularHttpResponse<TData>>;
-  sqlSchemaControllerFindAll<TData = SqlSchema[]>(
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }
-  ): Observable<HttpEvent<TData>>;
-  sqlSchemaControllerFindAll<TData = SqlSchema[]>(options?: HttpClientOptions): Observable<TData> {
-    return this.http.get<TData>(`/sqlschema`, options);
-  }
-
-  sqlSchemaControllerCreate<TData = SqlSchema>(
-    sqlSchema: SqlSchema,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
-  ): Observable<TData>;
-  sqlSchemaControllerCreate<TData = SqlSchema>(
-    sqlSchema: SqlSchema,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }
-  ): Observable<AngularHttpResponse<TData>>;
-  sqlSchemaControllerCreate<TData = SqlSchema>(
-    sqlSchema: SqlSchema,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }
-  ): Observable<HttpEvent<TData>>;
-  sqlSchemaControllerCreate<TData = SqlSchema>(
-    sqlSchema: SqlSchema,
-    options?: HttpClientOptions
-  ): Observable<TData> {
-    return this.http.post<TData>(`/sqlschema`, sqlSchema, options);
-  }
-
-  sqlSchemaControllerFindOne<TData = SqlSchema>(
-    id: string,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
-  ): Observable<TData>;
-  sqlSchemaControllerFindOne<TData = SqlSchema>(
-    id: string,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }
-  ): Observable<AngularHttpResponse<TData>>;
-  sqlSchemaControllerFindOne<TData = SqlSchema>(
-    id: string,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }
-  ): Observable<HttpEvent<TData>>;
-  sqlSchemaControllerFindOne<TData = SqlSchema>(
-    id: string,
-    options?: HttpClientOptions
-  ): Observable<TData> {
-    return this.http.get<TData>(`/sqlschema/${id}`, options);
-  }
-
-  sqlSchemaControllerPatch<TData = SqlSchema>(
-    id: string,
-    sqlSchema: SqlSchema,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
-  ): Observable<TData>;
-  sqlSchemaControllerPatch<TData = SqlSchema>(
-    id: string,
-    sqlSchema: SqlSchema,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }
-  ): Observable<AngularHttpResponse<TData>>;
-  sqlSchemaControllerPatch<TData = SqlSchema>(
-    id: string,
-    sqlSchema: SqlSchema,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }
-  ): Observable<HttpEvent<TData>>;
-  sqlSchemaControllerPatch<TData = SqlSchema>(
-    id: string,
-    sqlSchema: SqlSchema,
-    options?: HttpClientOptions
-  ): Observable<TData> {
-    return this.http.patch<TData>(`/sqlschema/${id}`, sqlSchema, options);
-  }
-
-  sqlSchemaControllerRemove<TData = void>(
-    id: string,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
-  ): Observable<TData>;
-  sqlSchemaControllerRemove<TData = void>(
-    id: string,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }
-  ): Observable<AngularHttpResponse<TData>>;
-  sqlSchemaControllerRemove<TData = void>(
-    id: string,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }
-  ): Observable<HttpEvent<TData>>;
-  sqlSchemaControllerRemove<TData = void>(
-    id: string,
-    options?: HttpClientOptions
-  ): Observable<TData> {
-    return this.http.delete<TData>(`/sqlschema/${id}`, options);
-  }
 }
 
 export type FormsControllerFindAllClientResult = NonNullable<Form[]>;
@@ -224,8 +127,3 @@ export type FormsControllerCreateClientResult = NonNullable<Form>;
 export type FormsControllerFindOneClientResult = NonNullable<Form>;
 export type FormsControllerPatchClientResult = NonNullable<Form>;
 export type FormsControllerRemoveClientResult = NonNullable<void>;
-export type SqlSchemaControllerFindAllClientResult = NonNullable<SqlSchema[]>;
-export type SqlSchemaControllerCreateClientResult = NonNullable<SqlSchema>;
-export type SqlSchemaControllerFindOneClientResult = NonNullable<SqlSchema>;
-export type SqlSchemaControllerPatchClientResult = NonNullable<SqlSchema>;
-export type SqlSchemaControllerRemoveClientResult = NonNullable<void>;
