@@ -12,6 +12,8 @@ export enum SqlColumnType {
   INTEGER = 'integer',
   BOOLEAN = 'boolean',
   DATE = 'date',
+  DATETIME = 'datetime',
+  TIMESTAMP = 'timestamp',
   FLOAT = 'float',
   JSON = 'json',
 }

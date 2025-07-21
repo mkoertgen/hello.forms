@@ -1,9 +1,8 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { Entity, Column } from 'typeorm';
-import { JSONSchema7 } from 'json-schema';
 import { ValidateNested } from 'class-validator';
-import { BaseModel, Meta } from './BaseModel';
+import { BaseModel } from './BaseModel';
 
 @ApiSchema()
 export class FormStep {

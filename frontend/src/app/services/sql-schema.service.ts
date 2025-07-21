@@ -1,14 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { SQLTable, SQLColumn, SQLDataType, FormFieldType } from '../models/form-schema.models';
+import { SqlTable, SqlColumn, SqlDataType, FormFieldType } from '../models/form-schema.models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SqlSchemaService {
   private apiUrl = 'http://localhost:3000/api';
-  private tablesSubject = new BehaviorSubject<SQLTable[]>([]);
+  private tablesSubject = new BehaviorSubject<SqlTable[]>([]);
   public tables$ = this.tablesSubject.asObservable();
 
   constructor(private http: HttpClient) {
@@ -17,41 +17,71 @@ export class SqlSchemaService {
 
   // Load sample tables for demo purposes
   private loadSampleTables(): void {
-    const sampleTables: SQLTable[] = [
+    const sampleTables: SqlTable[] = [
       {
         name: 'users',
         columns: [
           { name: 'id', type: 'INTEGER', nullable: false, primaryKey: true },
           { name: 'email', type: 'VARCHAR', nullable: false, primaryKey: false, maxLength: 255 },
-          { name: 'first_name', type: 'VARCHAR', nullable: false, primaryKey: false, maxLength: 100 },
-          { name: 'last_name', type: 'VARCHAR', nullable: false, primaryKey: false, maxLength: 100 },
+          {
+            name: 'first_name',
+            type: 'VARCHAR',
+            nullable: false,
+            primaryKey: false,
+            maxLength: 100,
+          },
+          {
+            name: 'last_name',
+            type: 'VARCHAR',
+            nullable: false,
+            primaryKey: false,
+            maxLength: 100,
+          },
           { name: 'phone', type: 'VARCHAR', nullable: true, primaryKey: false, maxLength: 20 },
           { name: 'birth_date', type: 'DATE', nullable: true, primaryKey: false },
-          { name: 'is_active', type: 'BOOLEAN', nullable: false, primaryKey: false, defaultValue: true },
+          {
+            name: 'is_active',
+            type: 'BOOLEAN',
+            nullable: false,
+            primaryKey: false,
+            defaultValue: true,
+          },
           { name: 'created_at', type: 'TIMESTAMP', nullable: false, primaryKey: false },
-          { name: 'updated_at', type: 'TIMESTAMP', nullable: false, primaryKey: false }
-        ]
+          { name: 'updated_at', type: 'TIMESTAMP', nullable: false, primaryKey: false },
+        ],
       },
       {
         name: 'orders',
         columns: [
           { name: 'id', type: 'INTEGER', nullable: false, primaryKey: true },
-          { name: 'user_id', type: 'INTEGER', nullable: false, primaryKey: false, foreignKey: 'users.id' },
-          { name: 'order_number', type: 'VARCHAR', nullable: false, primaryKey: false, maxLength: 50 },
+          {
+            name: 'user_id',
+            type: 'INTEGER',
+            nullable: false,
+            primaryKey: false,
+            foreignKey: 'users.id',
+          },
+          {
+            name: 'order_number',
+            type: 'VARCHAR',
+            nullable: false,
+            primaryKey: false,
+            maxLength: 50,
+          },
           { name: 'total_amount', type: 'DECIMAL', nullable: false, primaryKey: false },
           { name: 'order_date', type: 'DATETIME', nullable: false, primaryKey: false },
           { name: 'status', type: 'VARCHAR', nullable: false, primaryKey: false, maxLength: 20 },
           { name: 'shipping_address', type: 'TEXT', nullable: true, primaryKey: false },
-          { name: 'notes', type: 'TEXT', nullable: true, primaryKey: false }
+          { name: 'notes', type: 'TEXT', nullable: true, primaryKey: false },
         ],
         relationships: [
           {
             type: 'many-to-many',
             targetTable: 'users',
             foreignKey: 'user_id',
-            targetKey: 'id'
-          }
-        ]
+            targetKey: 'id',
+          },
+        ],
       },
       {
         name: 'products',
@@ -61,32 +91,38 @@ export class SqlSchemaService {
           { name: 'description', type: 'TEXT', nullable: true, primaryKey: false },
           { name: 'price', type: 'DECIMAL', nullable: false, primaryKey: false },
           { name: 'category', type: 'VARCHAR', nullable: false, primaryKey: false, maxLength: 100 },
-          { name: 'in_stock', type: 'BOOLEAN', nullable: false, primaryKey: false, defaultValue: true },
+          {
+            name: 'in_stock',
+            type: 'BOOLEAN',
+            nullable: false,
+            primaryKey: false,
+            defaultValue: true,
+          },
           { name: 'weight', type: 'FLOAT', nullable: true, primaryKey: false },
-          { name: 'created_at', type: 'TIMESTAMP', nullable: false, primaryKey: false }
-        ]
-      }
+          { name: 'created_at', type: 'TIMESTAMP', nullable: false, primaryKey: false },
+        ],
+      },
     ];
-    
+
     this.tablesSubject.next(sampleTables);
   }
 
-  getTables(): Observable<SQLTable[]> {
-    return this.http.get<SQLTable[]>(`${this.apiUrl}/tables`);
+  getTables(): Observable<SqlTable[]> {
+    return this.http.get<SqlTable[]>(`${this.apiUrl}/tables`);
   }
 
-  getTable(tableName: string): Observable<SQLTable> {
-    return this.http.get<SQLTable>(`${this.apiUrl}/tables/${tableName}`);
+  getTable(tableName: string): Observable<SqlTable> {
+    return this.http.get<SqlTable>(`${this.apiUrl}/tables/${tableName}`);
   }
 
-  uploadSchema(schemaFile: File): Observable<SQLTable[]> {
+  uploadSchema(schemaFile: File): Observable<SqlTable[]> {
     const formData = new FormData();
     formData.append('schema', schemaFile);
-    return this.http.post<SQLTable[]>(`${this.apiUrl}/upload-schema`, formData);
+    return this.http.post<SqlTable[]>(`${this.apiUrl}/upload-schema`, formData);
   }
 
-  // Convert SQL column to form field type
-  mapSqlTypeToFormFieldType(sqlType: SQLDataType, maxLength?: number): FormFieldType {
+  // Convert Sql column to form field type
+  mapSqlTypeToFormFieldType(sqlType: SqlDataType, maxLength?: number): FormFieldType {
     switch (sqlType) {
       case 'INTEGER':
       case 'FLOAT':
@@ -111,30 +147,30 @@ export class SqlSchemaService {
     }
   }
 
-  // Generate suggested validation rules based on SQL column
-  generateValidationRules(column: SQLColumn): string[] {
+  // Generate suggested validation rules based on Sql column
+  generateValidationRules(column: SqlColumn): string[] {
     const rules: string[] = [];
-    
+
     if (!column.nullable) {
       rules.push('required');
     }
-    
+
     if (column.maxLength) {
       rules.push(`max_length:${column.maxLength}`);
     }
-    
+
     if (column.type === 'VARCHAR' && column.name.toLowerCase().includes('email')) {
       rules.push('email');
     }
-    
+
     if (column.type === 'VARCHAR' && column.name.toLowerCase().includes('url')) {
       rules.push('url');
     }
-    
+
     if (['INTEGER', 'FLOAT', 'DECIMAL'].includes(column.type)) {
       rules.push('numeric');
     }
-    
+
     return rules;
   }
 
@@ -143,7 +179,7 @@ export class SqlSchemaService {
     return columnName
       .replace(/_/g, ' ')
       .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
+      .replace(/^./, (str) => str.toUpperCase())
       .trim();
   }
 }

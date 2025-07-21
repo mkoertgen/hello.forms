@@ -20,14 +20,14 @@ import { Subscription } from 'rxjs';
     MatButtonModule,
     MatCardModule,
     MatIconModule,
-    FormFieldComponent
+    FormFieldComponent,
   ],
   templateUrl: './form-preview.component.html',
-  styleUrls: ['./form-preview.component.scss']
+  styleUrls: ['./form-preview.component.scss'],
 })
 export class FormPreviewComponent implements OnInit, OnDestroy {
   @Input() schema!: FormSchema;
-  
+
   stepFormGroups: FormGroup[] = [];
   singleFormGroup: FormGroup = new FormGroup({});
   private subscriptions = new Subscription();
@@ -54,64 +54,67 @@ export class FormPreviewComponent implements OnInit, OnDestroy {
 
     if (this.schema.steps && this.schema.steps.length > 0) {
       // Build step forms
-      this.stepFormGroups = this.schema.steps.map(step => {
+      this.stepFormGroups = this.schema.steps.map((step) => {
         const formGroup = this.formBuilder.group({});
-        
+
         if (step.fields && Array.isArray(step.fields)) {
-          step.fields.forEach(fieldId => {
+          step.fields.forEach((fieldId) => {
             const field = this.getFieldById(fieldId);
             if (field && field.name) {
-              const validators = this.validationService.getValidatorsForField(field, this.schema.validationRules);
+              const validators = this.validationService.getValidatorsForField(
+                field,
+                this.schema.validationRules
+              );
               formGroup.addControl(field.name, this.formBuilder.control('', validators));
             }
           });
         }
-        
+
         return formGroup;
       });
     } else {
       // Build single form
       const formControls: { [key: string]: [string, any[]] } = {};
-      
+
       if (this.schema.fields && Array.isArray(this.schema.fields)) {
-        this.schema.fields.forEach(field => {
+        this.schema.fields.forEach((field) => {
           if (field && field.name) {
             const validators = this.buildValidators(field);
             formControls[field.name] = ['', validators];
           }
         });
       }
-      
+
       this.singleFormGroup = this.formBuilder.group(formControls);
     }
   }
 
   private buildValidators(field: FormField): any[] {
     const validators: any[] = [];
-    
+
     if (field.required) {
       validators.push(Validators.required);
     }
-    
+
     if (field.type === 'email') {
       validators.push(Validators.email);
     }
-    
+
     // Add more validators based on field type
     if (field.type === 'number') {
       validators.push(Validators.pattern(/^\d+$/));
     }
-    
+
     return validators;
   }
 
   getFieldById(fieldId: string): FormField | undefined {
-    return this.schema.fields?.find(field => field.id === fieldId);
+    return this.schema.fields?.find((field) => field.id === fieldId);
   }
 
   isFormValid(): boolean {
     if (this.schema.steps && this.schema.steps.length > 0) {
-      return this.stepFormGroups.every(formGroup => formGroup.valid);
+      return this.stepFormGroups.every((formGroup) => formGroup.valid);
     } else {
       return this.singleFormGroup.valid;
     }

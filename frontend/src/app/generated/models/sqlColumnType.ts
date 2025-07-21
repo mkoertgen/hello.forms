@@ -17,6 +17,8 @@ export const SqlColumnType = {
   integer: 'integer',
   boolean: 'boolean',
   date: 'date',
+  datetime: 'datetime',
+  timestamp: 'timestamp',
   float: 'float',
   json: 'json',
 } as const;
